@@ -18,30 +18,30 @@ enum ShortcutActionID: String, CaseIterable, Codable {
     case filterFiles
     case clearSearchOrClose
 
-    enum Group: String, CaseIterable {
-        case global = "全局"
-        case browsing = "浏览"
-        case actions = "操作"
-        case filters = "筛选"
-        case window = "窗口"
+    enum Group: CaseIterable {
+        case global
+        case browsing
+        case actions
+        case filters
+        case window
     }
 
     var displayName: String {
         switch self {
-        case .toggleHistory: return "打开或关闭历史"
-        case .selectPrevious: return "选择上一项"
-        case .selectNext: return "选择下一项"
-        case .toggleSearchFocus: return "切换卡片与搜索框"
-        case .pasteSelection: return "粘贴所选内容"
-        case .toggleQuickLook: return "Quick Look 预览"
-        case .togglePin: return "置顶或取消置顶"
-        case .addToPinboard: return "收藏到收藏板"
-        case .deleteSelection: return "删除所选记录"
-        case .filterAll: return "筛选：全部"
-        case .filterText: return "筛选：文本"
-        case .filterImage: return "筛选：图片"
-        case .filterFiles: return "筛选：文件"
-        case .clearSearchOrClose: return "清除搜索或关闭"
+        case .toggleHistory: return L10n.tr("打开或关闭历史")
+        case .selectPrevious: return L10n.tr("选择上一项")
+        case .selectNext: return L10n.tr("选择下一项")
+        case .toggleSearchFocus: return L10n.tr("切换卡片与搜索框")
+        case .pasteSelection: return L10n.tr("粘贴所选内容")
+        case .toggleQuickLook: return L10n.tr("Quick Look 预览")
+        case .togglePin: return L10n.tr("置顶或取消置顶")
+        case .addToPinboard: return L10n.tr("收藏到收藏板")
+        case .deleteSelection: return L10n.tr("删除所选记录")
+        case .filterAll: return L10n.tr("筛选：全部")
+        case .filterText: return L10n.tr("筛选：文本")
+        case .filterImage: return L10n.tr("筛选：图片")
+        case .filterFiles: return L10n.tr("筛选：文件")
+        case .clearSearchOrClose: return L10n.tr("清除搜索或关闭")
         }
     }
 
@@ -245,13 +245,13 @@ enum ShortcutValidationIssue: Equatable {
     var message: String {
         switch self {
         case .requiresModifier:
-            return "字母、数字或标点需要搭配 ⌘、⌥ 或 ⌃。"
+            return L10n.tr("字母、数字或标点需要搭配 ⌘、⌥ 或 ⌃。")
         case .globalRequiresModifier:
-            return "全局快捷键需要包含 ⌘、⌥ 或 ⌃。"
+            return L10n.tr("全局快捷键需要包含 ⌘、⌥ 或 ⌃。")
         case .reservedByApplication:
-            return "该组合已被 cpsmart 或 macOS 保留，请选择其他快捷键。"
+            return L10n.tr("该组合已被 cpsmart 或 macOS 保留，请选择其他快捷键。")
         case .conflictsWith(let action):
-            return "与“\(action.displayName)”的快捷键冲突。"
+            return L10n.format("与“{0}”的快捷键冲突。", [action.displayName])
         }
     }
 }

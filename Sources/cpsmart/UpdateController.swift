@@ -20,19 +20,19 @@ final class UpdateController {
         var errorDescription: String? {
             switch self {
             case .invalidInstalledVersion:
-                return "无法读取当前应用版本。请使用正式安装包中的 cpsmart 再试。"
+                return L10n.tr("无法读取当前应用版本。请使用正式安装包中的 cpsmart 再试。")
             case .invalidResponse:
-                return "GitHub 返回了无法识别的响应。"
+                return L10n.tr("GitHub 返回了无法识别的响应。")
             case let .serverStatus(status):
-                return "GitHub 更新服务暂时不可用（HTTP \(status)）。"
+                return L10n.format("GitHub 更新服务暂时不可用（HTTP {0}）。", [status])
             case .invalidRelease:
-                return "最新 Release 没有有效的版本号。"
+                return L10n.tr("最新 Release 没有有效的版本号。")
             case .untrustedDownload:
-                return "安装包下载地址不属于 cpsmart 的官方 GitHub Release。"
+                return L10n.tr("安装包下载地址不属于 cpsmart 的官方 GitHub Release。")
             case .downloadsDirectoryUnavailable:
-                return "找不到当前用户的“下载”文件夹。"
+                return L10n.tr("找不到当前用户的“下载”文件夹。")
             case .downloadFailed:
-                return "安装包下载失败或内容为空。"
+                return L10n.tr("安装包下载失败或内容为空。")
             }
         }
     }
@@ -60,9 +60,9 @@ final class UpdateController {
 
     var menuItemTitle: String {
         switch activity {
-        case .idle: return "检查更新…"
-        case .checking: return "正在检查更新…"
-        case .downloading: return "正在下载更新…"
+        case .idle: return L10n.tr("检查更新…")
+        case .checking: return L10n.tr("正在检查更新…")
+        case .downloading: return L10n.tr("正在下载更新…")
         }
     }
 
@@ -114,8 +114,8 @@ final class UpdateController {
         guard activity == .idle else {
             if userInitiated {
                 showInformation(
-                    title: "更新任务正在进行",
-                    message: activity == .checking ? "正在检查 GitHub Release。" : "正在下载安装包。"
+                    title: L10n.tr("更新任务正在进行"),
+                    message: activity == .checking ? L10n.tr("正在检查 GitHub Release。") : L10n.tr("正在下载安装包。")
                 )
             } else {
                 // A manual check already covers this automatic interval. Defer the next timer
@@ -215,8 +215,8 @@ final class UpdateController {
         guard installedVersion < releaseVersion else {
             if userInitiated {
                 showInformation(
-                    title: "cpsmart 已是最新版本",
-                    message: "当前版本：\(installedVersionString)"
+                    title: L10n.tr("cpsmart 已是最新版本"),
+                    message: L10n.format("当前版本：{0}", [installedVersionString])
                 )
             }
             return
@@ -227,14 +227,14 @@ final class UpdateController {
 
     private func showAvailableUpdate(_ release: GitHubRelease, version: String) {
         let alert = NSAlert()
-        alert.messageText = "发现 cpsmart 新版本 \(version)"
-        alert.informativeText = "新版安装包将从 cpsmart 的官方 GitHub Release 下载，完成后会自动打开。"
+        alert.messageText = L10n.format("发现 cpsmart 新版本 {0}", [version])
+        alert.informativeText = L10n.tr("新版安装包将从 cpsmart 的官方 GitHub Release 下载，完成后会自动打开。")
         alert.alertStyle = .informational
 
         if let asset = release.installerAsset {
-            alert.addButton(withTitle: "下载更新")
-            alert.addButton(withTitle: "更新日志")
-            alert.addButton(withTitle: "稍后")
+            alert.addButton(withTitle: L10n.tr("下载更新"))
+            alert.addButton(withTitle: L10n.tr("更新日志"))
+            alert.addButton(withTitle: L10n.tr("稍后"))
             switch runModal(alert) {
             case .alertFirstButtonReturn:
                 download(asset, releaseVersion: version)
@@ -244,9 +244,9 @@ final class UpdateController {
                 break
             }
         } else {
-            alert.informativeText += "\n\n这个 Release 没有可下载的 DMG 安装包。"
-            alert.addButton(withTitle: "更新日志")
-            alert.addButton(withTitle: "稍后")
+            alert.informativeText += L10n.tr("\n\n这个 Release 没有可下载的 DMG 安装包。")
+            alert.addButton(withTitle: L10n.tr("更新日志"))
+            alert.addButton(withTitle: L10n.tr("稍后"))
             if runModal(alert) == .alertFirstButtonReturn {
                 NSWorkspace.shared.open(release.htmlURL)
             }
@@ -353,19 +353,19 @@ final class UpdateController {
         alert.messageText = title
         alert.informativeText = message
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "好")
+        alert.addButton(withTitle: L10n.tr("好"))
         runModal(alert)
     }
 
     private func showDownloadedUpdate(version: String, installerOpened: Bool) {
         let alert = NSAlert()
-        alert.messageText = "cpsmart \(version) 已下载"
+        alert.messageText = L10n.format("cpsmart {0} 已下载", [version])
         alert.informativeText = UpdateSupport.installationInstructions(
             installerOpened: installerOpened
         )
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "退出 cpsmart")
-        alert.addButton(withTitle: "稍后")
+        alert.addButton(withTitle: L10n.tr("退出 cpsmart"))
+        alert.addButton(withTitle: L10n.tr("稍后"))
         if runModal(alert) == .alertFirstButtonReturn {
             NSApp.terminate(nil)
         }
@@ -373,12 +373,12 @@ final class UpdateController {
 
     private func showError(_ error: Error) {
         let alert = NSAlert()
-        alert.messageText = "无法更新 cpsmart"
+        alert.messageText = L10n.tr("无法更新 cpsmart")
         alert.informativeText = (error as? LocalizedError)?.errorDescription
             ?? error.localizedDescription
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "好")
-        alert.addButton(withTitle: "打开 GitHub")
+        alert.addButton(withTitle: L10n.tr("好"))
+        alert.addButton(withTitle: L10n.tr("打开 GitHub"))
         if runModal(alert) == .alertSecondButtonReturn {
             NSWorkspace.shared.open(Self.repositoryURL)
         }

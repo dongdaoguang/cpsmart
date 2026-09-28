@@ -1,101 +1,103 @@
-# 用户自定义快捷键：调研结论与实施计划
+# User-configurable shortcuts: research findings and implementation plan
 
-> 状态：核心功能与新版设置界面已实现，并通过自动化测试、Debug/Release 构建和当前屏幕视觉检查；真实安装包的主副屏交互仍未验证。本文同时保留产品范围、技术设计与验收标准。
+**English** | [简体中文](KEYBOARD_SHORTCUT_CUSTOMIZATION_PLAN.zh-CN.md)
 
-## 结论
+> Status: The core feature and redesigned settings UI are implemented. Automated tests, Debug and Release builds, and a visual check on the currently available display have been completed; interactions on both primary and secondary displays with a real installed package remain unverified. This document retains the product scope, technical design, and acceptance criteria.
 
-可以支持，而且不需要新增辅助功能、输入监控等系统权限。
+## Conclusion
 
-这项功能不宜只把现有 `keyCode` 常量替换成 `UserDefaults`。cpsmart 当前有两套键盘处理机制：
+User-configurable shortcuts are feasible without requesting additional system permissions such as Accessibility or Input Monitoring.
 
-- 全局唤起键 `⇧⌘V` 由 Carbon `RegisterEventHotKey` 注册；
-- 浮窗内的浏览、搜索、预览、粘贴等按键由 AppKit `NSEvent` 本地监听处理。
+The change should go beyond replacing the current `keyCode` constants with values from `UserDefaults`. cpsmart has two keyboard-handling mechanisms:
 
-浮窗快捷键还会随“浏览、搜索输入、中文输入法组合、Quick Look”状态改变行为。因此建议先建立统一的快捷键模型、匹配器和冲突校验，再添加设置界面。这样用户修改按键后，实际行为、窗口提示、菜单标题和“关于”页可以始终保持一致。
+- Carbon `RegisterEventHotKey` registers the global `⇧⌘V` shortcut.
+- An AppKit `NSEvent` local monitor handles browsing, search, preview, paste, and other shortcuts inside the history window.
 
-## 建议的第一版范围
+A window shortcut can also behave differently while browsing, typing in search, composing text with a Chinese input method, or using Quick Look. The proposed sequence is to build one shortcut model, matcher, and conflict validator before adding settings UI. This keeps behavior, window hints, menu titles, and the About page consistent when a user changes a binding.
 
-第一版支持“一项操作绑定一组按键”，并保留鼠标和触控板操作作为固定替代方式。暂不支持一项操作由用户设置多组快捷键，也不支持只按修饰键触发。
+## Proposed first-version scope
 
-| 分组 | 操作 | 当前默认值 | 第一版是否可改 | 说明 |
+The first version lets a user assign one key combination per action. Mouse and trackpad operations remain fixed alternatives. User-defined multiple combinations for one action and modifier-only bindings are out of scope.
+
+| Group | Action | Current default | Configurable in v1 | Notes |
 |---|---|---:|---:|---|
-| 全局 | 打开或关闭历史 | `⇧⌘V` | 是 | 至少包含 `⌘`、`⌥`、`⌃` 之一，避免劫持正常输入 |
-| 浏览 | 选择上一项 | `←` | 是 | 可改成 `↑` 等非文本键 |
-| 浏览 | 选择下一项 | `→` | 是 | 可改成 `↓` 等非文本键 |
-| 浏览/搜索 | 在卡片与搜索框之间切换 | `Tab` | 是 | 搜索时仍需优先保护输入法组合文本 |
-| 操作 | 粘贴所选内容 | `Return` | 是 | 当前数字键盘 Enter 也可触发，重置默认后应保留这一兼容行为 |
-| 操作 | 打开或关闭 Quick Look | `Space` | 是 | Quick Look 打开时，同一按键应负责关闭 |
-| 操作 | 置顶或取消置顶 | `⌘P` | 是 | 仅在浮窗内生效 |
-| 操作 | 删除所选记录 | `⌘⌫` | 是 | 当前 `⌘⌦` 也可触发，重置默认后应保留 |
-| 筛选 | 全部 / 文本 / 图片 / 文件 | `⌘1`–`⌘4` | 是 | 作为四项独立绑定，分别检测冲突 |
-| 窗口 | 清除搜索或关闭 | `Esc` | 是 | 保持“先清搜索，再关闭”的上下文语义 |
+| Global | Open or close history | `⇧⌘V` | Yes | Must include at least one of `⌘`, `⌥`, or `⌃` to avoid intercepting normal typing |
+| Browsing | Select previous item | `←` | Yes | Can change to a non-text key such as `↑` |
+| Browsing | Select next item | `→` | Yes | Can change to a non-text key such as `↓` |
+| Browsing/search | Switch between cards and the search field | `Tab` | Yes | Must still protect marked input-method text while searching |
+| Action | Paste selection | `Return` | Yes | Numeric keypad Enter also works by default; restoring defaults should preserve this |
+| Action | Open or close Quick Look | `Space` | Yes | The same key should close it when Quick Look is open |
+| Action | Pin or unpin | `⌘P` | Yes | Only works in the history window |
+| Action | Delete selected records | `⌘⌫` | Yes | `⌘⌦` also works by default and should return when defaults are restored |
+| Filter | All / Text / Images / Files | `⌘1`–`⌘4` | Yes | Four independent bindings, each checked for conflicts |
+| Window | Clear search or close | `Esc` | Yes | Keep the context-sensitive behavior: clear search first, then close |
 
-以下内容不作为可绑定操作：
+These are not bindable actions:
 
-- 在搜索框中输入普通文字；这是文本输入，不是快捷键动作；
-- `⌘Q` 退出等系统标准菜单命令；
-- 鼠标单击、双击和触控板行为；
-- 音量、亮度、弹出键等可能被系统在更底层拦截的硬件键。
+- Typing ordinary text in the search field; this is text input, not a shortcut action.
+- Standard system menu commands such as `⌘Q` to quit.
+- Mouse single-click, double-click, and trackpad behavior.
+- Hardware keys such as volume, brightness, and eject, which may be intercepted below the app.
 
-## 交互设计
+## Interaction design
 
-### 入口
+### Entry point
 
-在菜单栏菜单中新增“快捷键设置…”。设置窗口优先显示在鼠标所在屏幕，并依据该屏幕的 `visibleFrame` 定位，不能固定使用主屏幕。
+Add Shortcut Settings… to the menu bar menu. Prefer the display containing the pointer for the settings window, and place it using that display's `visibleFrame` instead of assuming the primary display.
 
-设置窗口采用与历史浮窗一致的原生磨砂、圆角卡片和蓝色强调色，按使用频率组织，而不是把 13 项操作平铺成一张表：
+Use the same native frosted appearance, rounded cards, and blue accent as the history window. Group actions by frequency rather than flattening all 13 actions into a table:
 
-- “全局唤起”独立强调，避免把最重要的快捷键淹没在列表中；
-- “浏览与定位”提供 `← / →` 与 `↑ / ↓` 两套方向预设，同时允许逐项微调；
-- “常用操作”直接显示粘贴、预览和关闭；
-- 置顶、删除和筛选收纳在可展开的“更多快捷键”中；若其中存在修改项则自动展开；
-- 当前快捷键以实体键帽展示，修改项显示状态徽标并提供单项恢复；
-- 固定底栏显示已修改数量，并提供“恢复全部默认”。窗口使用系统关闭按钮，不再重复放置“完成”。
+- Emphasize the global activation shortcut separately so it does not get lost in a list.
+- Offer both `← / →` and `↑ / ↓` presets under Browsing and Navigation while still allowing each action to be adjusted.
+- Show Paste, Preview, and Close directly under Common Actions.
+- Put Pin, Delete, and filters in an expandable More Shortcuts section; expand it automatically if any binding inside it has changed.
+- Display current shortcuts as physical keycaps, with a state badge and individual restore control for changed items.
+- Show the count of changed bindings in a fixed footer, along with Restore All Defaults. Use the system close button rather than a redundant Done button.
 
-### 录制按键
+### Record a key combination
 
-1. 用户点击某一行的快捷键控件后，控件进入“请按下新快捷键”状态。
-2. 再次点击录制控件，或点击控件外，取消本次录制。`Esc` 本身可以被录制为快捷键。
-3. 录制到合法按键后先校验，再应用并保存。
-4. 冲突或系统无法注册时，在当前行就地显示原因，原快捷键继续生效；若是应用内重复绑定，可直接交换两项快捷键。
-5. 不允许把操作清空为“无”。这样不会让用户意外失去键盘访问路径；如以后要支持禁用，应单独设计开关。
+1. Clicking a shortcut control puts it into a “Press a new shortcut” state.
+2. Clicking the recorder again or clicking outside cancels recording. `Esc` itself must be recordable as a shortcut.
+3. Validate a recorded combination before applying and saving it.
+4. On a conflict or registration failure, show the reason on the same row and keep the original shortcut working. If two in-app actions share a binding, offer to swap their shortcuts.
+5. Do not allow an action to be cleared to None, which could remove its keyboard path unexpectedly. If disabling actions is needed later, design a separate toggle.
 
-### 哪些组合可以接受
+### Accepted combinations
 
-- 箭头、Tab、Return、Space、Esc、Delete 等非文本键可以不带修饰键；
-- 字母、数字和标点必须包含 `⌘`、`⌥` 或 `⌃`，避免在搜索框中输入文字时触发命令；
-- 全局快捷键必须包含 `⌘`、`⌥` 或 `⌃`，Shift 可以作为附加修饰键；
-- 不接受只有修饰键、Caps Lock，或应用收不到的媒体键；
-- 匹配前只保留 `⌘⌥⌃⇧`，忽略 Caps Lock、数字键盘标记等设备状态位，避免同一组合在不同键盘上表现不一致。
+- Non-text keys such as arrows, Tab, Return, Space, Esc, and Delete may be used without modifiers.
+- Letters, digits, and punctuation require `⌘`, `⌥`, or `⌃` so they do not trigger commands while a user types into search.
+- Global shortcuts require `⌘`, `⌥`, or `⌃`; Shift may be an additional modifier.
+- Reject modifier-only combinations, Caps Lock, and media keys that the app does not receive.
+- Before matching, retain only `⌘⌥⌃⇧` and ignore device-state flags such as Caps Lock and numeric keypad, so the same combination behaves consistently across keyboards.
 
-## 冲突与失败处理
+## Conflicts and failures
 
-### 应用内冲突
+### Conflicts inside the app
 
-采用容易理解的严格规则：任何两个可配置操作都不能使用完全相同的组合，即使它们理论上只在不同界面状态生效。这能避免后续调整状态机后产生隐蔽冲突。设置页检测到应用内冲突时，会提供“交换”操作；交换前对两项的新组合做一次整体校验，避免只改一半。
+Use a strict, understandable rule: no two configurable actions may have exactly the same combination, even if they appear to be active in different UI states. This avoids hidden conflicts if the state machine changes later. When settings detects an in-app conflict, offer Swap. Validate both resulting bindings together before swapping so the change cannot be applied halfway.
 
-全局唤起键也不能与浮窗内操作重复，因为全局注册在 cpsmart 自己处于前台时仍可能先收到按键。
+The global activation shortcut must also differ from window actions, because its global registration may receive the key first even when cpsmart is in front.
 
-### 与其他应用或系统冲突
+### Conflicts with another app or the system
 
-全局快捷键保存前必须实际尝试注册。建议采用事务式切换：
+Actually attempt to register a global shortcut before saving it. The proposed switch is transactional:
 
-1. 进入录制状态时临时注销当前全局快捷键，避免 Carbon 先拦截同一组合；
-2. 录制完成后尝试注册候选快捷键；
-3. 成功后才保存设置并保留新注册；
-4. 取消或失败时立即重新注册原快捷键，并显示“该快捷键可能已被系统或其他应用占用”。
+1. Temporarily unregister the current global shortcut on entering recording so Carbon cannot intercept the same combination.
+2. After recording, try to register the candidate shortcut.
+3. Save the setting and keep the new registration only after registration succeeds.
+4. On cancellation or failure, immediately register the original shortcut again and explain that the candidate may already be used by the system or another app.
 
-不能仅靠一张硬编码的“系统保留快捷键列表”判断，因为实际冲突取决于用户安装的软件和系统设置。硬编码规则只负责拦截明显不安全的组合，注册结果才是最终依据。
+A hard-coded list of reserved system shortcuts cannot be the sole test: actual conflicts depend on installed apps and system settings. Hard-coded rules should reject only clearly unsafe combinations; the registration result is authoritative.
 
-### 恢复默认与方向预设
+### Restore defaults and arrow presets
 
-“恢复默认”也应是事务式操作。先确认默认全局快捷键可以注册，再一次性清除自定义数据并刷新所有界面。若 `⇧⌘V` 当前被其他应用占用，则不做部分恢复，保留现有配置并提示用户先解除冲突。
+Restore Defaults should also be transactional. First confirm the default global shortcut can be registered, then clear all custom values and refresh every UI surface in one operation. If another app currently uses `⇧⌘V`, keep the existing configuration intact and ask the user to resolve the conflict before restoring.
 
-单项恢复同样先检查默认值是否与其他当前绑定冲突；全局项还会先尝试注册默认组合。方向预设把上一项和下一项作为一个批次校验与写入，不能出现只切换其中一个方向的中间状态。
+Restoring one action first checks whether its default conflicts with other current bindings. For the global action, it also tries registering the default combination. An arrow preset must validate and write Previous Item and Next Item as one batch, with no intermediate state where only one direction has changed.
 
-## 数据模型
+## Data model
 
-建议新增稳定的动作标识，而不是把中文标题作为存储键：
+Use stable action identifiers instead of Chinese titles as storage keys:
 
 ```swift
 enum ShortcutActionID: String, CaseIterable, Codable {
@@ -120,122 +122,122 @@ struct ShortcutGesture: Codable, Hashable {
 }
 ```
 
-建议把覆盖项以带版本号的单个 Codable 字典存入 `UserDefaults`，例如 `keyboardShortcuts.v1`。读取时把覆盖项与代码中的默认表合并：
+The proposed storage is one versioned Codable dictionary in `UserDefaults`, such as `keyboardShortcuts.v1`. When reading, merge overrides with the built-in defaults:
 
-- 没有覆盖项时直接使用默认值；
-- 未知动作标识忽略，便于新旧版本兼容；
-- 单项数据损坏时仅该项回退默认；
-- “恢复默认”通过删除整个覆盖项实现，以便未来版本修改默认值后用户能得到新的默认配置。
+- Use the default directly when an action has no override.
+- Ignore unknown action identifiers for compatibility across versions.
+- If one action's data is corrupt, fall back only that action to its default.
+- Implement Restore Defaults by deleting the entire override dictionary, so users receive any new defaults added in future versions.
 
-当前 Return/数字键盘 Enter、`⌘⌫`/`⌘⌦` 是同一动作的多个默认手势。内部默认表可以保留多个手势；用户录制新组合时，用一个自定义手势替换该动作的全部默认手势，恢复默认后再恢复兼容手势。
+Return/numeric keypad Enter and `⌘⌫`/`⌘⌦` are multiple default gestures for the same actions. The internal default table can retain multiple gestures. Recording a custom shortcut replaces all defaults for that action with one gesture, and restoring the default brings the compatibility gestures back.
 
-## 代码结构建议
+## Suggested code structure
 
-### 1. 统一模型与存储
+### 1. Unified model and storage
 
-新增 `ShortcutAction.swift` 和 `ShortcutStore.swift`：
+Add `ShortcutAction.swift` and `ShortcutStore.swift`:
 
-- 定义动作、按键、默认值与显示名称；
-- 从 `UserDefaults` 读取、校验和保存覆盖项；
-- 提供 `effectiveBindings`、冲突检测、全量重置；
-- 发出配置变化通知，供菜单、浮窗提示和“关于”窗口刷新。
+- Define actions, keys, defaults, and display names.
+- Read, validate, and save overrides in `UserDefaults`.
+- Provide `effectiveBindings`, conflict detection, and a full reset.
+- Publish changes so menu titles, history hints, and the About window can refresh.
 
-### 2. 单一事件匹配器
+### 2. One event matcher
 
-新增可独立测试的 `ShortcutMatcher`：
+Add a separately testable `ShortcutMatcher`:
 
-- 将 `NSEvent.keyCode` 和规范化后的修饰键转换成统一手势；
-- 根据当前上下文解析动作：浏览、搜索、输入法组合、Quick Look；
-- 输入法有组合文本时，除带 Command 的明确命令外，优先把事件交还给系统文本输入；
-- Quick Look 打开时，预览键和关闭键只关闭预览，不直接关闭历史窗口；
-- 找不到动作时不吞掉事件。
+- Convert `NSEvent.keyCode` and normalized modifiers into a common gesture.
+- Resolve actions by context: browsing, search, input-method composition, and Quick Look.
+- While an input method has marked text, return events to system text input first except for explicit Command shortcuts.
+- While Quick Look is open, Preview and Close should close only the preview, not the history window itself.
+- Leave an event unconsumed if no action matches.
 
-`HistoryWindowController.handleKeyboardEvent` 只负责执行解析出的动作，不再维护一大组硬编码 `keyCode` 分支。
+`HistoryWindowController.handleKeyboardEvent` should execute the resolved action instead of maintaining many hard-coded `keyCode` branches.
 
-`KeyboardCollectionView.keyDown` 目前重复处理了部分按键。实现时应删除这套硬编码分发，或让它调用同一个匹配器，不能保留两份快捷键真相来源。
+`KeyboardCollectionView.keyDown` currently duplicates some key handling. Remove its hard-coded dispatch or make it use the same matcher so there is one source of truth.
 
-### 3. 可重新绑定的全局快捷键
+### 3. Rebindable global shortcut
 
-调整 `GlobalHotKey`，让构造或重绑定方法接收 `ShortcutGesture`，不再固定使用 `kVK_ANSI_V + cmdKey + shiftKey`。提供明确的注册错误结果，以便设置窗口展示冲突并回滚。
+Change `GlobalHotKey` so initialization or rebinding accepts a `ShortcutGesture` instead of hard-coding `kVK_ANSI_V + cmdKey + shiftKey`. Return explicit registration errors so settings can explain conflicts and roll back.
 
-`AppDelegate` 负责协调事务式重绑定，并让菜单中的“打开剪贴板历史（…）”标题实时显示当前组合。
+`AppDelegate` coordinates transactional rebinding and updates the “Open Clipboard History (…)” menu title immediately.
 
-### 4. 设置界面和录制控件
+### 4. Settings window and recorder control
 
-新增 `ShortcutSettingsWindowController` 与轻量的 `ShortcutRecorderControl`。不建议为了这一项功能引入第三方依赖；AppKit 原生控件足够完成录制、键盘焦点、VoiceOver 标签和错误提示。
+Add `ShortcutSettingsWindowController` and a small `ShortcutRecorderControl`. A third-party dependency is unnecessary for recording, keyboard focus, VoiceOver labels, and error messages; native AppKit controls can handle them.
 
-录制控件使用物理 `keyCode` 作为匹配依据，因为 Carbon 全局注册也需要虚拟键码。显示层把方向键、Tab、Return、Space、Esc 等转换成稳定名称；字母和标点保存录制时由 `charactersIgnoringModifiers` 得到的可读文字。切换键盘布局后仍按原物理键触发，界面保留录制时的文字；需要按新布局语义触发时应重新录制。键盘布局切换仍要在真实设备上专项验证。
+Match physical `keyCode` values because Carbon global registration also requires virtual key codes. The display layer converts arrows, Tab, Return, Space, Esc, and similar keys into stable names. For letters and punctuation, save a readable label from `charactersIgnoringModifiers` when recording. After a keyboard-layout change, the original physical key still triggers the action and the UI retains the recorded label. Re-record the shortcut to use the new layout's meaning. Test layout switching separately on real devices.
 
-### 5. 所有提示由配置生成
+### 5. Generate every hint from the configuration
 
-以下位置不能继续写死默认快捷键：
+These places must not keep hard-coded defaults:
 
-- 浮窗底部提示；
-- 菜单栏“打开剪贴板历史（…）”；
-- “关于 cpsmart”的键盘快捷键卡片；
-- README 中的默认快捷键说明。
+- The history window's footer hints.
+- The menu bar's “Open Clipboard History (…)” item.
+- The shortcut cards in About cpsmart.
+- The default shortcut descriptions in the README.
 
-浮窗提示空间有限，不能把所有自定义组合塞进一行。建议浏览态只展示最常用的“预览、搜索、粘贴、关闭”，其余在设置页和“关于”页查看。
+The footer has limited space; it should not try to show every custom combination in one line. Show only the common Preview, Search, Paste, and Close actions while browsing, with the rest available in settings and About.
 
-## 实现时已处理的问题
+## Issues addressed during implementation
 
-- 原先 `HistoryWindowController` 同时在本地事件监听器和 `KeyboardCollectionView.keyDown` 中处理按键；现已收敛为统一匹配器；
-- 原先“关于”页写着“直接输入即可搜索”，与必须先进入搜索框的行为不一致；现已改为显示用户当前的搜索快捷键；
-- 原先多个判断只检查“是否包含 Command”，会让 `⌥⌘P` 误触发 `⌘P`；现已改为规范化后的精确匹配；
-- 原先全局快捷键注册失败只在启动时弹窗；设置页现会显示非破坏性错误并恢复旧绑定。
+- `HistoryWindowController` previously handled keys in both a local event monitor and `KeyboardCollectionView.keyDown`. Handling has been consolidated into one matcher.
+- The About page previously said “just start typing to search,” although search required focusing the search field. It now shows the user's current search shortcut.
+- Several checks previously tested only whether Command was present, causing `⌥⌘P` to trigger `⌘P`. Matching now uses exact normalized combinations.
+- A global shortcut registration failure previously showed an alert only at launch. Settings now shows a non-destructive error and restores the old binding.
 
-## 实施顺序
+## Implementation sequence
 
-### 阶段一：核心模型与自动化测试
+### Phase 1: core model and automated tests
 
-1. 新增动作、手势、默认表、存储和显示格式化；
-2. 新增纯逻辑匹配器和上下文；
-3. 覆盖默认值、读写、损坏数据回退、修饰键规范化、冲突检测、交换、方向预设、单项/全量恢复和输入法优先级测试；
-4. 保证现有默认操作行为完全不变。
+1. Add actions, gestures, defaults, storage, and display formatting.
+2. Add a pure-logic matcher and contexts.
+3. Test defaults, reading and writing, corrupt-data fallback, modifier normalization, conflict detection, swap, arrow presets, individual and full restore, and input-method precedence.
+4. Keep all existing default behavior unchanged.
 
-### 阶段二：接入现有事件与全局注册
+### Phase 2: existing events and global registration
 
-1. 把浮窗硬编码分支迁移到统一匹配器；
-2. 移除 `KeyboardCollectionView` 的重复快捷键判断；
-3. 让 `GlobalHotKey` 接受配置并支持事务式重绑定；
-4. 增加全局注册失败的可测试注入点；
-5. 运行现有核心测试和构建检查。
+1. Move the history window's hard-coded branches to the common matcher.
+2. Remove duplicate shortcut dispatch in `KeyboardCollectionView`.
+3. Make `GlobalHotKey` accept configuration and support transactional rebinding.
+4. Add an injectable test point for global registration failure.
+5. Run existing core tests and build checks.
 
-### 阶段三：设置窗口与动态文案
+### Phase 3: settings window and dynamic copy
 
-1. 增加菜单入口、设置窗口和录制控件；
-2. 完成行内冲突提示、快捷键交换、方向预设、取消录制、立即生效和单项/全量恢复；
-3. 更新浮窗、菜单、“关于”页和 README；
-4. 检查键盘访问与 VoiceOver 名称。
+1. Add the menu entry, settings window, and recorder control.
+2. Implement row-level conflict messages, shortcut swap, arrow presets, cancel recording, immediate effect, and individual and full restore.
+3. Update the history window, menu, About page, and README.
+4. Check keyboard access and VoiceOver names.
 
-### 阶段四：真实安装包验证
+### Phase 4: validation of a real installed package
 
-按照 `docs/MULTI_DISPLAY_TESTING.md` 执行完整回归，并额外覆盖：
+Run the full [multi-display and input testing checklist](MULTI_DISPLAY_TESTING.md), plus these checks:
 
-- 设置窗口分别从主屏幕和副屏幕打开，位置均在鼠标所在屏幕的可见区域；
-- 在主屏幕和副屏幕分别验证默认与自定义的上一项、下一项、搜索、预览、粘贴和关闭；
-- 验证滚动容器第一张、中间和末尾卡片；
-- 使用中文输入法组合文字时，候选选择、确认和取消不被自定义快捷键抢走；
-- 切换至少两种键盘布局，核对录制结果、显示文字和实际触发；
-- 设置一个已被其他应用占用的全局组合，确认旧组合继续可用；
-- 恢复默认后重启应用，确认设置未残留；
-- 从 DMG 安装到 `/Applications` 后再做一次全局唤起和真实粘贴验证。
+- Open Shortcut Settings from both primary and secondary displays; keep it within the visible area of the display containing the pointer.
+- On both displays, test default and custom Previous Item, Next Item, Search, Preview, Paste, and Close bindings.
+- Test the first, middle, and last cards in a scrolled collection view.
+- With marked text from a Chinese input method, confirm custom shortcuts do not steal candidate selection, confirmation, or cancellation.
+- Switch between at least two keyboard layouts and check the recorded gesture, displayed label, and actual trigger.
+- Set a global combination already used by another app and confirm the old one still works.
+- Restore defaults and restart the app to confirm no custom settings remain.
+- After installing from the DMG into `/Applications`, test global activation and a real paste again.
 
-自动化测试通过不能代替这一阶段。在完成真实主副屏与安装包验证前，交付说明必须标记“未验证”。
+Automated tests cannot replace this phase. Until the primary/secondary display and installed-package checks are complete, delivery notes must say “Not verified” (未验证).
 
-## 验收标准
+## Acceptance criteria
 
-- 用户可以修改表格中列出的全部 cpsmart 快捷键；
-- 修改立即生效，重启后仍保留；
-- 相同组合不会绑定到两个动作；
-- 全局组合注册失败不会破坏当前可用组合；
-- 交换、方向预设和恢复默认均为原子操作，恢复后提示文字同步更新；
-- 默认配置下的行为与当前版本一致，包括数字键盘 Enter、`⌘⌦`、输入法组合和 Quick Look；
-- 主屏幕、副屏幕、鼠标、触控板和键盘路径均完成规定回归；
-- 不新增系统权限，也不影响未使用自定义功能的用户。
+- Users can change every cpsmart shortcut listed in the table.
+- Changes take effect immediately and persist across launches.
+- The same combination cannot bind two actions.
+- Failure to register a global combination does not break the currently working one.
+- Swap, arrow presets, and Restore Defaults are atomic, and hints update after restoration.
+- Default behavior remains the same, including numeric keypad Enter, `⌘⌦`, input-method composition, and Quick Look.
+- The required primary-display, secondary-display, mouse, trackpad, and keyboard regressions are complete.
+- No new system permission is required, and users who never customize a shortcut are unaffected.
 
-## 工作量与风险判断
+## Effort and risk
 
-这是一项中等规模改动。设置窗口本身不复杂，主要风险在事件上下文、全局注册回滚、键盘布局显示以及消除现有重复分发。建议按上述四个阶段提交，不把核心重构、UI 和发布验证挤在一个提交中。
+This is a medium-sized change. The settings window itself is relatively simple; the main risks are event context, global registration rollback, keyboard-layout labels, and removing duplicate dispatch. The suggested approach is four phases rather than combining the core refactor, UI, and release validation in one commit.
 
-如果要进一步压缩第一版，可以先开放“全局唤起、上一项、下一项、搜索、粘贴、预览、关闭”七类高频操作，把置顶、删除和四个筛选留到第二版。但从现有代码结构看，一次建立完整动作表后，后四类的边际实现成本不高，建议第一版一并支持。
+If the first version needs a narrower scope, start with the seven most-used categories: global activation, Previous Item, Next Item, Search, Paste, Preview, and Close. Pin, Delete, and the four filters could follow later. However, once a full action table exists, the marginal cost of the latter bindings is small, so the recommendation is to support them in the first version.

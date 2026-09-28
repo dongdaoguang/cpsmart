@@ -4,20 +4,20 @@ import Carbon
 private extension ShortcutActionID {
     var settingsDescription: String {
         switch self {
-        case .toggleHistory: return "在任何应用中打开或收起剪贴板历史"
-        case .selectPrevious: return "在卡片之间向前移动选择"
-        case .selectNext: return "在卡片之间向后移动选择"
-        case .toggleSearchFocus: return "在卡片列表和搜索框之间切换"
-        case .pasteSelection: return "把当前卡片粘贴到之前使用的应用"
-        case .toggleQuickLook: return "预览当前选中的内容"
-        case .togglePin: return "保留常用内容，不受自动清理影响"
-        case .addToPinboard: return "把当前内容保存到命名和着色的收藏板"
-        case .deleteSelection: return "移除当前选中的历史记录"
-        case .filterAll: return "显示所有类型的内容"
-        case .filterText: return "只显示文本内容"
-        case .filterImage: return "只显示图片内容"
-        case .filterFiles: return "只显示文件内容"
-        case .clearSearchOrClose: return "先清除搜索；再次按下时关闭窗口"
+        case .toggleHistory: return L10n.tr("在任何应用中打开或收起剪贴板历史")
+        case .selectPrevious: return L10n.tr("在卡片之间向前移动选择")
+        case .selectNext: return L10n.tr("在卡片之间向后移动选择")
+        case .toggleSearchFocus: return L10n.tr("在卡片列表和搜索框之间切换")
+        case .pasteSelection: return L10n.tr("把当前卡片粘贴到之前使用的应用")
+        case .toggleQuickLook: return L10n.tr("预览当前选中的内容")
+        case .togglePin: return L10n.tr("保留常用内容，不受自动清理影响")
+        case .addToPinboard: return L10n.tr("把当前内容保存到命名和着色的收藏板")
+        case .deleteSelection: return L10n.tr("移除当前选中的历史记录")
+        case .filterAll: return L10n.tr("显示所有类型的内容")
+        case .filterText: return L10n.tr("只显示文本内容")
+        case .filterImage: return L10n.tr("只显示图片内容")
+        case .filterFiles: return L10n.tr("只显示文件内容")
+        case .clearSearchOrClose: return L10n.tr("先清除搜索；再次按下时关闭窗口")
         }
     }
 }
@@ -79,7 +79,7 @@ private final class ShortcutRecorderControl: NSControl {
     var onRecordingChanged: ((Bool) -> Void)?
 
     private let tokenStack = NSStackView()
-    private let recordingLabel = NSTextField(labelWithString: "按下新快捷键…")
+    private let recordingLabel = NSTextField(labelWithString: L10n.tr("按下新快捷键…"))
     private var displayedBindings: [ShortcutGesture] = []
     private var palette = AppVisualTheme.palette(isDark: true)
     private var trackingAreaReference: NSTrackingArea?
@@ -92,10 +92,10 @@ private final class ShortcutRecorderControl: NSControl {
         translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
         focusRingType = .exterior
-        toolTip = "点击后按下新的快捷键"
+        toolTip = L10n.tr("点击后按下新的快捷键")
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
-        setAccessibilityLabel("\(shortcutAction.displayName)快捷键")
+        setAccessibilityLabel(L10n.format("{0}快捷键", [shortcutAction.displayName]))
 
         tokenStack.translatesAutoresizingMaskIntoConstraints = false
         tokenStack.orientation = .horizontal
@@ -201,7 +201,7 @@ private final class ShortcutRecorderControl: NSControl {
         displayedBindings = bindings
         guard !isRecordingShortcut else { return }
         rebuildTokens()
-        setAccessibilityValue(bindings.map(\.displayString).joined(separator: " 或 "))
+        setAccessibilityValue(bindings.map(\.displayString).joined(separator: L10n.tr(" 或 ")))
     }
 
     func cancelRecording() {
@@ -286,7 +286,7 @@ private final class ShortcutRowView: NSView {
     private let titleLabel = NSTextField(labelWithString: "")
     private let detailLabel = NSTextField(labelWithString: "")
     private let modifiedBadge = NSView()
-    private let modifiedBadgeLabel = NSTextField(labelWithString: "已修改")
+    private let modifiedBadgeLabel = NSTextField(labelWithString: L10n.tr("已修改"))
     private let resetButton = NSButton()
     private let feedbackContainer = NSView()
     private let feedbackIcon = NSImageView()
@@ -321,7 +321,7 @@ private final class ShortcutRowView: NSView {
         modifiedBadge.wantsLayer = true
         modifiedBadge.isHidden = true
         modifiedBadge.setAccessibilityElement(true)
-        modifiedBadge.setAccessibilityLabel("已修改")
+        modifiedBadge.setAccessibilityLabel(L10n.tr("已修改"))
         modifiedBadgeLabel.translatesAutoresizingMaskIntoConstraints = false
         modifiedBadgeLabel.font = .systemFont(ofSize: 9.5, weight: .semibold)
         modifiedBadgeLabel.alignment = .center
@@ -333,13 +333,13 @@ private final class ShortcutRowView: NSView {
             modifiedBadgeLabel.centerYAnchor.constraint(equalTo: modifiedBadge.centerYAnchor)
         ])
 
-        resetButton.title = "恢复"
+        resetButton.title = L10n.tr("恢复")
         resetButton.bezelStyle = .rounded
         resetButton.controlSize = .small
         resetButton.font = .systemFont(ofSize: 11, weight: .medium)
         resetButton.target = self
         resetButton.action = #selector(resetAction)
-        resetButton.toolTip = "仅恢复这一项"
+        resetButton.toolTip = L10n.tr("仅恢复这一项")
         resetButton.isHidden = true
         resetButton.translatesAutoresizingMaskIntoConstraints = false
 
@@ -433,12 +433,12 @@ private final class ShortcutRowView: NSView {
         }
         feedbackIcon.image = NSImage(
             systemSymbolName: "exclamationmark.circle.fill",
-            accessibilityDescription: "错误"
+            accessibilityDescription: L10n.tr("错误")
         )
         feedbackIcon.contentTintColor = .systemRed
         feedbackLabel.textColor = .systemRed
         feedbackLabel.stringValue = message
-        swapButton.title = conflictingAction.map { "与“\($0.displayName)”交换" } ?? ""
+        swapButton.title = conflictingAction.map { L10n.format("与“{0}”交换", [$0.displayName]) } ?? ""
         swapButton.isHidden = pendingSwap == nil
         feedbackHeightConstraint.constant = 32
         feedbackContainer.isHidden = false
@@ -450,7 +450,7 @@ private final class ShortcutRowView: NSView {
         pendingSwap = nil
         feedbackIcon.image = NSImage(
             systemSymbolName: "checkmark.circle.fill",
-            accessibilityDescription: "已保存"
+            accessibilityDescription: L10n.tr("已保存")
         )
         feedbackIcon.contentTintColor = .systemGreen
         feedbackLabel.textColor = .systemGreen
@@ -572,7 +572,7 @@ final class ShortcutSettingsWindowController: NSWindowController, NSWindowDelega
     private var cards: [ShortcutCardView] = []
     private let backdrop = SettingsBackdropView()
     private let footerCountLabel = NSTextField(labelWithString: "")
-    private let resetAllButton = NSButton(title: "恢复全部默认", target: nil, action: nil)
+    private let resetAllButton = NSButton(title: L10n.tr("恢复全部默认"), target: nil, action: nil)
     private let advancedButton = NSButton()
     private var advancedCard: ShortcutCardView!
     private var palette = AppVisualTheme.palette(isDark: true)
@@ -590,7 +590,7 @@ final class ShortcutSettingsWindowController: NSWindowController, NSWindowDelega
         )
         super.init(window: window)
 
-        window.title = "快捷键设置"
+        window.title = L10n.tr("快捷键设置")
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
@@ -676,8 +676,8 @@ final class ShortcutSettingsWindowController: NSWindowController, NSWindowDelega
 
         let globalRow = makeRow(for: .toggleHistory)
         addSection(
-            title: "全局唤起",
-            subtitle: "无论当前在哪个应用，都能快速找到剪贴板内容。",
+            title: L10n.tr("全局唤起"),
+            subtitle: L10n.tr("无论当前在哪个应用，都能快速找到剪贴板内容。"),
             card: makeCard(items: [globalRow], featured: true),
             to: contentStack
         )
@@ -688,15 +688,15 @@ final class ShortcutSettingsWindowController: NSWindowController, NSWindowDelega
             makeRow(for: .toggleSearchFocus)
         ])
         addSection(
-            title: "浏览与定位",
-            subtitle: "在卡片之间移动选择，或在卡片和搜索框之间切换。",
+            title: L10n.tr("浏览与定位"),
+            subtitle: L10n.tr("在卡片之间移动选择，或在卡片和搜索框之间切换。"),
             card: navigationCard,
             to: contentStack
         )
 
         addSection(
-            title: "常用操作",
-            subtitle: "粘贴、预览、收藏和退出是使用频率最高的窗口内动作。",
+            title: L10n.tr("常用操作"),
+            subtitle: L10n.tr("粘贴、预览、收藏和退出是使用频率最高的窗口内动作。"),
             card: makeCard(items: [
                 makeRow(for: .pasteSelection),
                 makeRow(for: .toggleQuickLook),
@@ -756,16 +756,16 @@ final class ShortcutSettingsWindowController: NSWindowController, NSWindowDelega
         let icon = NSImageView()
         icon.image = NSImage(
             systemSymbolName: "keyboard.badge.ellipsis",
-            accessibilityDescription: "快捷键"
+            accessibilityDescription: L10n.tr("快捷键")
         )
         icon.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 24, weight: .medium)
         icon.translatesAutoresizingMaskIntoConstraints = false
         icon.wantsLayer = true
         icon.layer?.cornerRadius = 12
 
-        let title = NSTextField(labelWithString: "让每一次操作都更顺手")
+        let title = NSTextField(labelWithString: L10n.tr("让每一次操作都更顺手"))
         title.font = .systemFont(ofSize: 23, weight: .semibold)
-        let subtitle = NSTextField(wrappingLabelWithString: "点击任意键帽开始录制。设置会立即保存，并同步到菜单提示与窗口操作。")
+        let subtitle = NSTextField(wrappingLabelWithString: L10n.tr("点击任意键帽开始录制。设置会立即保存，并同步到菜单提示与窗口操作。"))
         subtitle.font = .systemFont(ofSize: 12.5)
         subtitle.maximumNumberOfLines = 2
         let copy = NSStackView(views: [title, subtitle])
@@ -848,7 +848,7 @@ final class ShortcutSettingsWindowController: NSWindowController, NSWindowDelega
     }
 
     private func configureAdvancedButton() {
-        advancedButton.title = "更多快捷键"
+        advancedButton.title = L10n.tr("更多快捷键")
         advancedButton.image = NSImage(
             systemSymbolName: "chevron.right",
             accessibilityDescription: nil
@@ -860,7 +860,7 @@ final class ShortcutSettingsWindowController: NSWindowController, NSWindowDelega
         advancedButton.font = .systemFont(ofSize: 12.5, weight: .semibold)
         advancedButton.target = self
         advancedButton.action = #selector(toggleAdvanced)
-        advancedButton.setAccessibilityHelp("显示置顶、删除和内容筛选快捷键")
+        advancedButton.setAccessibilityHelp(L10n.tr("显示置顶、删除和内容筛选快捷键"))
     }
 
     private func makeFooter() -> NSView {
@@ -901,7 +901,7 @@ final class ShortcutSettingsWindowController: NSWindowController, NSWindowDelega
     }
 
     private func attemptChange(action: ShortcutActionID, gesture: ShortcutGesture) -> String? {
-        guard let row = rows[action] else { return "无法找到这个快捷键项目。" }
+        guard let row = rows[action] else { return L10n.tr("无法找到这个快捷键项目。") }
         row.clearFeedback()
         if let issue = shortcutStore.validate(gesture, for: action) {
             if case .conflictsWith(let conflictingAction) = issue {
@@ -919,7 +919,7 @@ final class ShortcutSettingsWindowController: NSWindowController, NSWindowDelega
             row.showIssue(error)
             return error
         }
-        row.showSaved("已保存为 \(gesture.displayString)")
+        row.showSaved(L10n.format("已保存为 {0}", [gesture.displayString]))
         return nil
     }
 
@@ -931,7 +931,7 @@ final class ShortcutSettingsWindowController: NSWindowController, NSWindowDelega
             row.showIssue(error)
             return
         }
-        row.showSaved("已恢复为 \(shortcutStore.defaultDisplayString(for: action))")
+        row.showSaved(L10n.format("已恢复为 {0}", [shortcutStore.defaultDisplayString(for: action)]))
     }
 
     private func swap(
@@ -944,7 +944,7 @@ final class ShortcutSettingsWindowController: NSWindowController, NSWindowDelega
             row.showIssue(error)
             return
         }
-        row.showSaved("已与“\(conflictingAction.displayName)”交换")
+        row.showSaved(L10n.format("已与“{0}”交换", [conflictingAction.displayName]))
         rows[conflictingAction]?.clearFeedback()
     }
 
@@ -954,21 +954,21 @@ final class ShortcutSettingsWindowController: NSWindowController, NSWindowDelega
 
     private func setAdvancedExpanded(_ expanded: Bool) {
         advancedCard.isHidden = !expanded
-        advancedButton.title = expanded ? "收起更多快捷键" : "更多快捷键"
+        advancedButton.title = expanded ? L10n.tr("收起更多快捷键") : L10n.tr("更多快捷键")
         advancedButton.image = NSImage(
             systemSymbolName: expanded ? "chevron.down" : "chevron.right",
             accessibilityDescription: nil
         )
-        advancedButton.setAccessibilityValue(expanded ? "已展开" : "已收起")
+        advancedButton.setAccessibilityValue(expanded ? L10n.tr("已展开") : L10n.tr("已收起"))
     }
 
     @objc private func resetToDefaults() {
         cancelAllRecorders(except: nil)
         let alert = NSAlert()
-        alert.messageText = "恢复所有默认快捷键？"
-        alert.informativeText = "\(ShortcutActionID.allCases.count) 项快捷键会恢复为安装时的设置。"
-        alert.addButton(withTitle: "恢复全部默认")
-        alert.addButton(withTitle: "取消")
+        alert.messageText = L10n.tr("恢复所有默认快捷键？")
+        alert.informativeText = L10n.format("{0} 项快捷键会恢复为安装时的设置。", [ShortcutActionID.allCases.count])
+        alert.addButton(withTitle: L10n.tr("恢复全部默认"))
+        alert.addButton(withTitle: L10n.tr("取消"))
         guard alert.runModal() == .alertFirstButtonReturn else { return }
 
         if let error = onAttemptReset?() {
@@ -981,9 +981,9 @@ final class ShortcutSettingsWindowController: NSWindowController, NSWindowDelega
     private func showWindowError(_ message: String) {
         let alert = NSAlert()
         alert.alertStyle = .warning
-        alert.messageText = "无法更改快捷键"
+        alert.messageText = L10n.tr("无法更改快捷键")
         alert.informativeText = message
-        alert.addButton(withTitle: "好")
+        alert.addButton(withTitle: L10n.tr("好"))
         if let window { alert.beginSheetModal(for: window) }
     }
 
@@ -995,7 +995,7 @@ final class ShortcutSettingsWindowController: NSWindowController, NSWindowDelega
             )
         }
         let count = shortcutStore.customizationCount
-        footerCountLabel.stringValue = count == 0 ? "正在使用默认设置" : "已修改 \(count) 项快捷键"
+        footerCountLabel.stringValue = count == 0 ? L10n.tr("正在使用默认设置") : L10n.format("已修改 {0} 项快捷键", [count])
         resetAllButton.isEnabled = count > 0
         let advancedActions: Set<ShortcutActionID> = [
             .togglePin, .deleteSelection, .filterAll, .filterText, .filterImage, .filterFiles

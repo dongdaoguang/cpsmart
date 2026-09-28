@@ -27,6 +27,7 @@ CLANG_MODULE_CACHE_PATH="$MODULE_CACHE" swiftc \
     -sdk "$SDK_PATH" \
     -target "$(uname -m)-apple-macosx13.0" \
     "$PROJECT_DIR/Sources/cpsmart/Models.swift" \
+    "$PROJECT_DIR/Sources/cpsmart/Localization.swift" \
     "$PROJECT_DIR/Sources/cpsmart/HistoryStore.swift" \
     "$PROJECT_DIR/Sources/cpsmart/PinboardStore.swift" \
     "$PROJECT_DIR/Sources/cpsmart/PinboardInteractionSupport.swift" \

@@ -1,39 +1,46 @@
-# 参与贡献
+# Contributing
 
-## 开发准备
+**English** | [简体中文](CONTRIBUTING.zh-CN.md)
 
-需要 macOS 13 或更高版本，以及 Apple Command Line Tools。
+## Set up for development
+
+You need macOS 13 or later and Apple Command Line Tools.
 
 ```bash
 swift build
 bash Scripts/run_tests.sh
 ```
 
-安装完整 Xcode 时，测试脚本会运行 SwiftPM 的标准 XCTest 目标；只有 Command Line Tools 的环境缺少 XCTest 模块，脚本才使用兼容运行器执行同一批核心用例。
+With a full Xcode installation, the test script runs the standard SwiftPM XCTest target. If only Command Line Tools are installed and XCTest is unavailable, it runs the same core cases through a compatible runner.
 
-请从最新的上游 `main` 创建功能分支，不要把任务交接、聊天记录、个人计划或临时截图提交到仓库。README、架构说明、测试方案、构建与发布文档可以随代码一起维护。
+Create feature branches from the latest upstream `main`. Do not commit task handoffs, chat transcripts, personal plans, or temporary screenshots. Maintain the README, architecture notes, test plans, and build or release documentation alongside the code when relevant.
 
-## 从 fork 提交 Pull Request
+## Localization
 
-1. 在 GitHub 上 fork `dongdaoguang/cpsmart`。
-2. 将官方仓库设为 `upstream`，自己的 fork 设为 `origin`。
-3. 从 `upstream/main` 创建分支并提交改动。
-4. 推送到自己的 fork，然后向 `dongdaoguang/cpsmart:main` 发起 Pull Request。
+Keep interface text in both `Sources/cpsmart/Resources/en.lproj/Localizable.strings` and `Sources/cpsmart/Resources/zh-Hans.lproj/Localizable.strings`. Use `L10n.tr` for fixed text and `L10n.format` for text with `{0}`, `{1}`, and other arguments. Preserve the same placeholders in both translations. Accessibility permission descriptions live in `Resources/en.lproj/InfoPlist.strings` and `Resources/zh-Hans.lproj/InfoPlist.strings`. Update the English and Chinese documentation together when behavior changes.
+
+## Open a pull request from a fork
+
+1. Fork `dongdaoguang/cpsmart` on GitHub.
+2. Set the official repository as `upstream` and your fork as `origin`.
+3. Create a branch from `upstream/main` and commit your changes.
+4. Push to your fork, then open a pull request against `dongdaoguang/cpsmart:main`.
 
 ```bash
 git remote rename origin upstream
-git remote add origin https://github.com/<你的账号>/cpsmart.git
+git remote add origin https://github.com/<your-username>/cpsmart.git
 git fetch upstream
-git switch -c feature/<功能名> upstream/main
+git switch -c feature/<feature-name> upstream/main
 
-# 修改、测试并提交后
-git push -u origin feature/<功能名>
-gh pr create --repo dongdaoguang/cpsmart --base main --head <你的账号>:feature/<功能名>
+# After making, testing, and committing your changes
+git push -u origin feature/<feature-name>
+gh pr create --repo dongdaoguang/cpsmart --base main --head <your-username>:feature/<feature-name>
 ```
 
-提交 PR 前请确认：
+Before submitting a pull request, check that:
 
-- `swift build` 和 `bash Scripts/run_tests.sh` 通过。
-- PR 中只有产品代码、测试和正式文档，没有过程文档。
-- README、更新日志和版本号与行为一致。
-- 不提交 `build/`、`dist/`、`.build/` 或本地证书和公证凭据。
+- `swift build` and `bash Scripts/run_tests.sh` pass.
+- For UI or input changes, complete the relevant checks in the [multi-display and input testing checklist](docs/MULTI_DISPLAY_TESTING.md).
+- The pull request contains only product code, tests, and maintained documentation, with no process notes.
+- The README, [changelog](CHANGELOG.md), and version numbers match the behavior.
+- You have not committed `build/`, `dist/`, `.build/`, local certificates, or notarization credentials.

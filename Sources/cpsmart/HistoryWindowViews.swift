@@ -430,7 +430,7 @@ final class HistoryCollectionItem: NSCollectionViewItem {
         pinImageView.translatesAutoresizingMaskIntoConstraints = false
         pinImageView.image = NSImage(
             systemSymbolName: "pin.fill",
-            accessibilityDescription: "已置顶"
+            accessibilityDescription: L10n.tr("已置顶")
         )
         pinImageView.imageScaling = .scaleProportionallyUpOrDown
         pinImageView.isHidden = true
@@ -540,7 +540,7 @@ final class HistoryCollectionItem: NSCollectionViewItem {
         titleLabel.textColor = palette.textPrimary
         metaRightLabel.textColor = palette.textTertiary
 
-        metaRightLabel.stringValue = Self.relativeDate.string(for: entry.recencyDate) ?? "刚刚"
+        metaRightLabel.stringValue = Self.relativeDate.string(for: entry.recencyDate) ?? L10n.tr("刚刚")
         pinImageView.isHidden = entry.isPinned != true
         pinImageView.contentTintColor = palette.accent
         configureSourceApp(entry)
@@ -553,13 +553,13 @@ final class HistoryCollectionItem: NSCollectionViewItem {
             titleLabel.lineBreakMode = .byTruncatingTail
             titleLabel.maximumNumberOfLines = 6
             titleLabel.stringValue = Self.preview(text)
-            metaTypeLabel.stringValue = "文本 · \(text.count) 字符"
+            metaTypeLabel.stringValue = L10n.format("文本 · {0} 字符", [text.count])
             metaTypeLabel.textColor = palette.typeText
             NSLayoutConstraint.activate(textConstraints)
 
         case .image(let data, _):
             thumbView.isHidden = false
-            metaTypeLabel.stringValue = "图片 · \(Self.byteCount.string(fromByteCount: Int64(data.count)))"
+            metaTypeLabel.stringValue = L10n.format("图片 · {0}", [Self.byteCount.string(fromByteCount: Int64(data.count))])
             metaTypeLabel.textColor = palette.typeImage
             if let size = ImageMetadata.pixelSize(of: data) {
                 dimLabel.stringValue = "\(Int(size.width)) × \(Int(size.height))"
@@ -586,12 +586,12 @@ final class HistoryCollectionItem: NSCollectionViewItem {
             titleLabel.maximumNumberOfLines = 2
             if paths.count == 1 {
                 titleLabel.stringValue = URL(fileURLWithPath: paths[0]).lastPathComponent
-                metaTypeLabel.stringValue = "文件"
+                metaTypeLabel.stringValue = L10n.tr("文件")
             } else {
                 titleLabel.stringValue = paths
                     .map { URL(fileURLWithPath: $0).lastPathComponent }
-                    .joined(separator: "、")
-                metaTypeLabel.stringValue = "\(paths.count) 个文件"
+                    .joined(separator: L10n.tr("fileList.separator"))
+                metaTypeLabel.stringValue = L10n.format("{0} 个文件", [paths.count])
             }
             metaTypeLabel.textColor = palette.typeFile
             NSLayoutConstraint.activate(fileConstraints)
@@ -611,7 +611,7 @@ final class HistoryCollectionItem: NSCollectionViewItem {
             return
         }
         sourceIconView.image = NSWorkspace.shared.icon(forFile: appURL.path)
-        sourceIconView.toolTip = entry.sourceAppName.map { "来自 \($0)" }
+        sourceIconView.toolTip = entry.sourceAppName.map { L10n.format("来自 {0}", [$0]) }
         sourceIconView.isHidden = false
         metaLeadingDirect.isActive = false
         metaLeadingAfterIcon.isActive = true
@@ -657,7 +657,7 @@ final class HistoryCollectionItem: NSCollectionViewItem {
 
     private static let relativeDate: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
-        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.locale = Locale(identifier: L10n.languageCode)
         formatter.unitsStyle = .short
         return formatter
     }()

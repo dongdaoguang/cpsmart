@@ -78,18 +78,9 @@ struct GitHubRelease {
 enum UpdateSupport {
     static func installationInstructions(installerOpened: Bool) -> String {
         let location = installerOpened
-            ? "安装镜像已经打开。"
-            : "安装包已保存到“下载”文件夹，请先打开它。"
-        return """
-        \(location)
-
-        接下来只需：
-        1. 点击下方“退出 cpsmart”。
-        2. 把镜像中的新版拖到“应用程序”，选择“替换”。
-        3. 重新打开 cpsmart。
-
-        如果更新后自动粘贴失效，再尝试粘贴一次并选择权限修复。cpsmart 会清理旧记录、打开正确页面并自动退出；然后点击“+”添加 /Applications/cpsmart.app、开启开关并重新启动。
-        """
+            ? L10n.tr("安装镜像已经打开。")
+            : L10n.tr("安装包已保存到“下载”文件夹，请先打开它。")
+        return L10n.format("update.installationInstructions", [location])
     }
 
     static func isTrustedReleasePageURL(_ url: URL) -> Bool {

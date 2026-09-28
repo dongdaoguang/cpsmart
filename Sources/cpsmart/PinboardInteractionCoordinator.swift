@@ -24,7 +24,7 @@ final class PinboardInteractionCoordinator: NSObject {
         let menu = NSMenu()
 
         let renameItem = NSMenuItem(
-            title: "重命名…",
+            title: L10n.tr("重命名…"),
             action: #selector(renameFromMenu(_:)),
             keyEquivalent: ""
         )
@@ -32,7 +32,7 @@ final class PinboardInteractionCoordinator: NSObject {
         renameItem.representedObject = board.id.uuidString
         menu.addItem(renameItem)
 
-        let colorItem = NSMenuItem(title: "颜色", action: nil, keyEquivalent: "")
+        let colorItem = NSMenuItem(title: L10n.tr("颜色"), action: nil, keyEquivalent: "")
         let colorMenu = NSMenu()
         for color in PinboardColor.allCases {
             let item = NSMenuItem(
@@ -51,7 +51,7 @@ final class PinboardInteractionCoordinator: NSObject {
         menu.addItem(.separator())
 
         let deleteItem = NSMenuItem(
-            title: "删除收藏板…",
+            title: L10n.tr("删除收藏板…"),
             action: #selector(deleteFromMenu(_:)),
             keyEquivalent: ""
         )
@@ -64,13 +64,13 @@ final class PinboardInteractionCoordinator: NSObject {
     func presentCreate(on window: NSWindow, adding entries: [ClipboardEntry]) {
         presentationWindow = window
         let alert = NSAlert()
-        alert.messageText = "新建收藏板"
-        alert.informativeText = "收藏板用于长期保存常用文本、命令、图片或文件。"
-        alert.addButton(withTitle: "创建")
-        alert.addButton(withTitle: "取消")
+        alert.messageText = L10n.tr("新建收藏板")
+        alert.informativeText = L10n.tr("收藏板用于长期保存常用文本、命令、图片或文件。")
+        alert.addButton(withTitle: L10n.tr("创建"))
+        alert.addButton(withTitle: L10n.tr("取消"))
 
         let nameField = NSTextField(string: "")
-        nameField.placeholderString = "名称，例如：常用命令"
+        nameField.placeholderString = L10n.tr("名称，例如：常用命令")
         nameField.translatesAutoresizingMaskIntoConstraints = false
         nameField.widthAnchor.constraint(equalToConstant: 280).isActive = true
         let colorPicker = PinboardColorPickerView(
@@ -94,7 +94,7 @@ final class PinboardInteractionCoordinator: NSObject {
                   let selectedIndex = colorPicker?.selectedIndex,
                   PinboardColor.allCases.indices.contains(selectedIndex) else { return }
             guard let normalizedName = PinboardInteractionSupport.normalizedName(name) else {
-                self.onStatus?("收藏板名称不能为空", true)
+                self.onStatus?(L10n.tr("收藏板名称不能为空"), true)
                 DispatchQueue.main.async { [weak self, weak window] in
                     guard let self, let window else { return }
                     self.presentCreate(on: window, adding: entries)
@@ -109,7 +109,7 @@ final class PinboardInteractionCoordinator: NSObject {
                 self.onSwitchSource?(board.id)
             } else {
                 self.onAddEntries?(entries, board.id)
-                self.onStatus?("已收藏 \(entries.count) 项到“\(board.name)”", false)
+                self.onStatus?(L10n.format("已收藏 {0} 项到“{1}”", [entries.count, board.name]), false)
             }
         }
     }
@@ -130,7 +130,7 @@ final class PinboardInteractionCoordinator: NSObject {
         }
 
         let menu = NSMenu()
-        let headerTitle = entries.count == 1 ? "收藏到收藏板" : "收藏 \(entries.count) 项到收藏板"
+        let headerTitle = entries.count == 1 ? L10n.tr("收藏到收藏板") : L10n.format("收藏 {0} 项到收藏板", [entries.count])
         let header = NSMenuItem(title: headerTitle, action: nil, keyEquivalent: "")
         header.isEnabled = false
         header.attributedTitle = NSAttributedString(
@@ -154,7 +154,7 @@ final class PinboardInteractionCoordinator: NSObject {
         }
         menu.addItem(.separator())
         let createItem = NSMenuItem(
-            title: "新建收藏板…",
+            title: L10n.tr("新建收藏板…"),
             action: #selector(createForPendingSelection(_:)),
             keyEquivalent: ""
         )
@@ -171,9 +171,9 @@ final class PinboardInteractionCoordinator: NSObject {
               let board = pinboards.first(where: { $0.id == id }),
               let presentationWindow else { return }
         let alert = NSAlert()
-        alert.messageText = "重命名收藏板"
-        alert.addButton(withTitle: "保存")
-        alert.addButton(withTitle: "取消")
+        alert.messageText = L10n.tr("重命名收藏板")
+        alert.addButton(withTitle: L10n.tr("保存"))
+        alert.addButton(withTitle: L10n.tr("取消"))
         let nameField = NSTextField(string: board.name)
         nameField.frame = NSRect(x: 0, y: 0, width: 280, height: 24)
         alert.accessoryView = nameField
@@ -182,7 +182,7 @@ final class PinboardInteractionCoordinator: NSObject {
             guard response == .alertFirstButtonReturn,
                   let name = nameField?.stringValue else { return }
             guard let normalizedName = PinboardInteractionSupport.normalizedName(name) else {
-                self?.onStatus?("收藏板名称不能为空", true)
+                self?.onStatus?(L10n.tr("收藏板名称不能为空"), true)
                 return
             }
             self?.onRename?(id, normalizedName)
@@ -201,11 +201,11 @@ final class PinboardInteractionCoordinator: NSObject {
               let board = pinboards.first(where: { $0.id == id }),
               let presentationWindow else { return }
         let alert = NSAlert()
-        alert.messageText = "删除收藏板“\(board.name)”？"
-        alert.informativeText = "其中的 \(board.entries.count) 项收藏会一并删除，此操作无法撤销。"
+        alert.messageText = L10n.format("删除收藏板“{0}”？", [board.name])
+        alert.informativeText = L10n.format("其中的 {0} 项收藏会一并删除，此操作无法撤销。", [board.entries.count])
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "删除")
-        alert.addButton(withTitle: "取消")
+        alert.addButton(withTitle: L10n.tr("删除"))
+        alert.addButton(withTitle: L10n.tr("取消"))
         alert.beginSheetModal(for: presentationWindow) { [weak self] response in
             guard response == .alertFirstButtonReturn else { return }
             self?.onDelete?(id)
@@ -223,8 +223,8 @@ final class PinboardInteractionCoordinator: NSObject {
         onAddEntries?(pendingFavoriteEntries, id)
         onStatus?(
             addedCount == 0
-                ? "所选内容已在“\(board.name)”中"
-                : "已收藏 \(addedCount) 项到“\(board.name)”",
+                ? L10n.format("所选内容已在“{0}”中", [board.name])
+                : L10n.format("已收藏 {0} 项到“{1}”", [addedCount, board.name]),
             false
         )
     }
