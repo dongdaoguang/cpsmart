@@ -6,6 +6,8 @@ This project follows semantic versioning.
 
 ## Unreleased
 
+## 1.12.0 — 2026-09-28
+
 ### Added
 
 - Added English and Simplified Chinese interface text and documentation, with a Language menu for switching immediately between Follow System, English, and Simplified Chinese.
