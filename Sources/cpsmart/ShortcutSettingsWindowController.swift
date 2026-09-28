@@ -645,6 +645,11 @@ final class ShortcutSettingsWindowController: NSWindowController, NSWindowDelega
         applyAppearance()
     }
 
+    func prepareForLanguageChange() {
+        cancelAllRecorders(except: nil)
+        window?.orderOut(nil)
+    }
+
     func windowWillClose(_ notification: Notification) {
         cancelAllRecorders(except: nil)
         NSApp.hide(nil)

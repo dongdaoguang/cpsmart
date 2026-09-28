@@ -219,6 +219,25 @@ final class HistoryWindowController: NSWindowController,
         reloadCollection(notify: false)
     }
 
+    func refreshLocalization() {
+        window?.title = L10n.tr("cpsmart 剪贴板历史")
+        if let selectedPinboardID,
+           let board = pinboards.first(where: { $0.id == selectedPinboardID }) {
+            searchField.placeholderString = L10n.format("在“{0}”中搜索", [board.name])
+        } else {
+            searchField.placeholderString = L10n.tr("搜索剪贴板历史")
+        }
+        for (index, title) in ["全部", "文本", "图片", "文件"].enumerated() {
+            filterControl.setLabel(L10n.tr(title), forSegment: index)
+        }
+        favoriteButton.image = NSImage(
+            systemSymbolName: "star",
+            accessibilityDescription: L10n.tr("收藏到收藏板")
+        )
+        favoriteButton.toolTip = L10n.tr("收藏到收藏板")
+        applyAppearanceMode()
+    }
+
     func show(
         entries: [ClipboardEntry],
         pinboards: [Pinboard] = []

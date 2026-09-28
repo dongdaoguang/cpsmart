@@ -38,9 +38,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var pauseMenuItem: NSMenuItem!
     private var loginMenuItem: NSMenuItem!
     private var appearanceMenuItem: NSMenuItem!
+    private var languageMenuItem: NSMenuItem!
     private var checkForUpdatesMenuItem: NSMenuItem!
     private var automaticUpdatesMenuItem: NSMenuItem!
     private var pendingDeletionUndo: PendingDeletionUndo?
+    private var pendingLanguageRefresh = false
 
     private var demoPinboardStore: PinboardStore?
     private var demoPinboardFileURL: URL?
@@ -445,6 +447,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func configureStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        rebuildStatusMenu()
+    }
+
+    private func rebuildStatusMenu() {
         if let button = statusItem.button {
             button.image = NSImage(
                 systemSymbolName: "doc.on.clipboard",
@@ -499,6 +505,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         appearanceSubmenu.delegate = self
         appearanceMenuItem.submenu = appearanceSubmenu
         menu.addItem(appearanceMenuItem)
+
+        languageMenuItem = NSMenuItem(title: L10n.tr("语言"), action: nil, keyEquivalent: "")
+        let languageSubmenu = NSMenu()
+        for (index, language) in AppLanguage.allCases.enumerated() {
+            let item = NSMenuItem(
+                title: language.displayName,
+                action: #selector(selectLanguage(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.tag = index
+            languageSubmenu.addItem(item)
+        }
+        languageSubmenu.delegate = self
+        languageMenuItem.submenu = languageSubmenu
+        menu.addItem(languageMenuItem)
 
         menu.addItem(NSMenuItem(
             title: L10n.tr("清空历史…"),
@@ -557,10 +579,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             return
         }
+        if menu === languageMenuItem.submenu {
+            for item in menu.items {
+                item.state = AppLanguage.allCases[item.tag] == AppLanguage.selected()
+                    ? .on
+                    : .off
+            }
+            return
+        }
         openHistoryMenuItem.title = openHistoryMenuTitle
         pauseMenuItem.state = monitor.isPaused ? .on : .off
         loginMenuItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
         refreshUpdateMenuItems()
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        guard menu === statusItem.menu, pendingLanguageRefresh else { return }
+        pendingLanguageRefresh = false
+        DispatchQueue.main.async { [weak self] in
+            self?.applyLanguageChange()
+        }
     }
 
     private func refreshUpdateMenuItems() {
@@ -575,6 +613,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         AppearanceMode.current = mode
         historyWindow.applyAppearanceMode()
         shortcutSettingsWindow.applyAppearanceMode()
+    }
+
+    @objc private func selectLanguage(_ sender: NSMenuItem) {
+        guard AppLanguage.allCases.indices.contains(sender.tag) else { return }
+        let language = AppLanguage.allCases[sender.tag]
+        guard language != AppLanguage.selected() else { return }
+        AppLanguage.select(language)
+        pendingLanguageRefresh = true
+    }
+
+    private func applyLanguageChange() {
+        rebuildStatusMenu()
+        historyWindow.refreshLocalization()
+        aboutWindow.refreshLocalization()
+
+        let oldSettings = shortcutSettingsWindow
+        let wasVisible = oldSettings.window?.isVisible == true
+        let previousFrame = oldSettings.window?.frame
+        oldSettings.prepareForLanguageChange()
+        shortcutSettingsWindow = ShortcutSettingsWindowController(shortcutStore: shortcutStore)
+        configureShortcutSettings()
+        if wasVisible {
+            shortcutSettingsWindow.show()
+            if let previousFrame {
+                shortcutSettingsWindow.window?.setFrame(previousFrame, display: true)
+            }
+        }
     }
 
     private func showHistory() {

@@ -540,7 +540,7 @@ final class HistoryCollectionItem: NSCollectionViewItem {
         titleLabel.textColor = palette.textPrimary
         metaRightLabel.textColor = palette.textTertiary
 
-        metaRightLabel.stringValue = Self.relativeDate.string(for: entry.recencyDate) ?? L10n.tr("刚刚")
+        metaRightLabel.stringValue = Self.localizedRelativeDate(for: entry.recencyDate) ?? L10n.tr("刚刚")
         pinImageView.isHidden = entry.isPinned != true
         pinImageView.contentTintColor = palette.accent
         configureSourceApp(entry)
@@ -657,10 +657,20 @@ final class HistoryCollectionItem: NSCollectionViewItem {
 
     private static let relativeDate: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
-        formatter.locale = Locale(identifier: L10n.languageCode)
         formatter.unitsStyle = .short
         return formatter
     }()
+
+    private static var relativeDateLanguage: String?
+
+    private static func localizedRelativeDate(for date: Date) -> String? {
+        let language = L10n.languageCode
+        if relativeDateLanguage != language {
+            relativeDate.locale = Locale(identifier: language)
+            relativeDateLanguage = language
+        }
+        return relativeDate.string(for: date)
+    }
 
     private static let byteCount: ByteCountFormatter = {
         let formatter = ByteCountFormatter()

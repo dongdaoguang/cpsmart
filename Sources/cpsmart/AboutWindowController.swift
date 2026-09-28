@@ -68,6 +68,14 @@ final class AboutWindowController: NSWindowController, NSWindowDelegate {
         #endif
     }
 
+    func refreshLocalization() {
+        guard let window else { return }
+        window.title = L10n.tr("关于 cpsmart")
+        if window.isVisible {
+            rebuildContent(window)
+        }
+    }
+
     /// 替换窗口内容并把滚动位置重置回顶部——替换 contentView 后 NSScrollView
     /// 的初始滚动位置会停在错误偏移，导致顶部图标区被滚出视野。
     private func rebuildContent(_ window: NSWindow) {

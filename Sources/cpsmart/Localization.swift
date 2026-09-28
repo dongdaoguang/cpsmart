@@ -1,11 +1,47 @@
 import Foundation
 
+enum AppLanguage: String, CaseIterable {
+    case system
+    case english = "en"
+    case simplifiedChinese = "zh-Hans"
+
+    private static let defaultsKey = "appLanguage"
+
+    static func selected(in defaults: UserDefaults = .standard) -> AppLanguage {
+        AppLanguage(rawValue: defaults.string(forKey: defaultsKey) ?? "") ?? .system
+    }
+
+    static func select(_ language: AppLanguage, in defaults: UserDefaults = .standard) {
+        if language == .system {
+            defaults.removeObject(forKey: defaultsKey)
+        } else {
+            defaults.set(language.rawValue, forKey: defaultsKey)
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .system: return L10n.tr("跟随系统")
+        case .english: return "English"
+        case .simplifiedChinese: return "简体中文"
+        }
+    }
+
+    func resolvedCode(preferredLanguage: String?) -> String {
+        switch self {
+        case .system:
+            return preferredLanguage?.hasPrefix("zh") == true ? "zh-Hans" : "en"
+        case .english: return "en"
+        case .simplifiedChinese: return "zh-Hans"
+        }
+    }
+}
+
 enum L10n {
     private static let placeholderPattern = try! NSRegularExpression(pattern: #"\{([0-9]+)\}"#)
 
     static var languageCode: String {
-        let preference = Locale.preferredLanguages.first ?? "en"
-        return preference.hasPrefix("zh") ? "zh-Hans" : "en"
+        AppLanguage.selected().resolvedCode(preferredLanguage: Locale.preferredLanguages.first)
     }
 
     static func tr(_ key: String, language: String? = nil) -> String {
