@@ -1,88 +1,90 @@
-# 多屏幕与输入事件测试清单
+# Multi-display and input testing checklist
 
-这份清单用于防止窗口、鼠标和触控板功能只在主屏幕正常。凡是修改窗口定位、集合视图、点击、预览、搜索、粘贴或辅助功能代码，都要执行相关项目。
+**English** | [简体中文](MULTI_DISPLAY_TESTING.zh-CN.md)
 
-## 为什么需要单独测试
+Use this checklist to prevent window, mouse, and trackpad behavior from working only on the primary display. Run the relevant checks whenever changing window placement, collection views, clicks, previews, search, pasting, or Accessibility code.
 
-macOS 的视图、窗口、屏幕、Core Graphics 和 Accessibility 使用的坐标范围与方向并不完全相同。副屏幕位于主屏幕上方或左侧时，屏幕坐标经常出现负数；集合视图滚动后，卡片的局部坐标也会变化。直接拿不同坐标系的点与 `bounds` 比较，会出现“键盘正常但鼠标无效”的问题。
+## Why this needs separate testing
 
-## 屏幕布局矩阵
+macOS views, windows, screens, Core Graphics, and Accessibility use different coordinate ranges and directions. A secondary display above or to the left of the primary often has negative coordinates. A card's local coordinates also change after the collection view scrolls. Comparing a point from one coordinate system directly with `bounds` in another can produce a bug where the keyboard works but the mouse does not.
 
-至少覆盖当前设备能组成的两种布局，其中必须有一种会产生负坐标。
+## Display layout matrix
 
-| 布局 | 必测 | 关注点 |
+Cover at least two layouts that the available hardware can form. At least one must have negative coordinates.
+
+| Layout | Priority | What to watch |
 |---|---:|---|
-| 副屏幕在主屏幕上方 | 是 | 纵向负坐标、菜单栏归属 |
-| 副屏幕在主屏幕左侧 | 建议 | 横向负坐标 |
-| 副屏幕在主屏幕右侧或下方 | 建议 | 跨屏边界 |
-| 两块屏幕缩放比例不同 | 建议 | Retina / 非 Retina 坐标转换 |
-| 更换主显示器 | 发布前 | `NSScreen.main` 变化后的行为 |
+| Secondary display above the primary | Required | Negative vertical coordinates and menu bar placement |
+| Secondary display to the left | Recommended | Negative horizontal coordinates |
+| Secondary display to the right or below | Recommended | Cross-display boundaries |
+| Displays with different scaling factors | Recommended | Retina / non-Retina coordinate conversion |
+| Change the primary display | Before release | Behavior when `NSScreen.main` changes |
 
-## 每块屏幕的功能矩阵
+## Functional checks on each display
 
-1. 把鼠标移到目标屏幕，按 `⇧⌘V`，确认历史窗口出现在同一屏幕的可见区域。
-2. 确认默认焦点在卡片浏览，`Space` 可以预览所选卡片。
-3. 用 `←` / `→` 选择第一张、中间和最后一张卡片。
-4. 从第一张卡片开始，用 `Shift` + `→` 连续扩展到中间卡片，再反向缩回；确认选区连续、活动卡片可见且没有跨越当前筛选结果。
-5. 单击第一张、中间和最后一张卡片，确认蓝色选中框移动且内容已复制。
-6. 分别用 `Shift` + 单击扩展连续选区、`⌘` + 单击增减选区、`⌘A` 全选当前结果；确认横向滚动后的中间和末尾卡片也能正确选中。
-7. 对多选结果执行收藏和删除；在收藏板内多选并移出，确认所有所选项只处理一次，未选项不受影响。
-8. 双击不同位置的卡片，确认窗口关闭并粘贴回原应用；多选时确认粘贴的是当前活动卡片。
-9. 按 `Tab` 进入搜索，输入一个搜索词；再按 `Tab` 或点击搜索框外，确认返回卡片浏览。
-10. 搜索为空时按 `Space`，确认执行预览而不是向搜索框输入空格。
-11. 点击类型筛选，确认全部、文本、图片和文件均可切换。
-12. 分别打开自适应预览和完整 Quick Look 后关闭，再继续使用单击、双击和键盘，确认焦点没有丢失。
-13. 打开“关于 cpsmart”，确认窗口出现在鼠标所在屏幕，图标、文字和滚动均正常。
-14. 打开“快捷键设置”，确认窗口出现在鼠标所在屏幕的可见区域；分别修改上一项、下一项、搜索、预览、粘贴和关闭快捷键，并回到历史浮窗验证即时生效。
-15. 在快捷键设置中制造一次重复绑定，确认错误显示在对应行；使用“交换”后验证两项同时生效，再分别验证单项恢复与“恢复全部默认”。
-16. 切换左右键与上下键预设，确认上一项和下一项总是成对更新；再尝试一次已被其他应用占用的全局绑定，确认原快捷键继续有效。
-17. 新建至少两个不同颜色的收藏板，确认标签可切换，右键菜单可重命名、改色和删除；用 `⌘⌥1`–`⌘⌥3` 直达“最近”和两个收藏板，再用 `⌃Tab` / `⌃⇧Tab` 验证正向、反向循环及首尾回绕。
-18. 分别在搜索输入中和预览打开时切换收藏板，确认搜索被清除、预览关闭、卡片焦点恢复；打开新建或重命名弹窗时，确认这些按键不会抢走表单输入。
-19. 分别把历史记录第一张、中间和末尾卡片拖到收藏板标签，确认标签高亮、历史仍保留且收藏内容只出现一次。
-20. 在收藏板内把第一张、中间和末尾卡片拖到不同位置，确认插入位置正确；关闭并重新打开应用后顺序保持。
-21. 在收藏板中开启搜索或类型筛选，确认拖动排序被禁用；清除筛选后排序恢复。
+1. Move the pointer to the target display, press `⇧⌘V`, and confirm that the history window appears within that display's visible area.
+2. Confirm that card browsing has focus by default and `Space` previews the selected card.
+3. Use `←` / `→` to select the first, a middle, and the last card.
+4. Starting from the first card, extend the selection to a middle card with `Shift` + `→`, then shrink it again. Confirm that the selection is contiguous, the active card remains visible, and the selection stays within the current filtered results.
+5. Single-click the first, a middle, and the last card. Confirm that the blue selection outline moves and the content is copied.
+6. Use `Shift`-click to extend a contiguous selection, `⌘`-click to add and remove cards, and `⌘A` to select all current results. Check middle and last cards after horizontal scrolling too.
+7. Save and delete multiple selected results. Select and remove multiple items in a pinboard. Confirm every selected item is handled once and unselected items remain untouched.
+8. Double-click cards in different positions. Confirm the window closes and the item is pasted into the previous app. With multiple cards selected, confirm the active card is pasted.
+9. Press `Tab` to enter search and type a query. Press `Tab` again or click outside the search field to return to card browsing.
+10. With an empty search field, press `Space` and confirm it opens the preview rather than inserting a space into search.
+11. Click the type filters and confirm All, Text, Images, and Files can each be selected.
+12. Open and close both the adaptive preview and full Quick Look preview. Continue using single-click, double-click, and the keyboard to confirm focus is preserved.
+13. Open About cpsmart. Confirm the window appears on the pointer's display and that its icon, text, and scrolling work.
+14. Open Shortcut Settings. Confirm the window is within the visible area of the pointer's display. Change Previous Item, Next Item, Search, Preview, Paste, and Close individually, then return to history and confirm each change takes effect immediately.
+15. Create a duplicate shortcut assignment and confirm the error appears on the correct row. Use Swap and confirm both actions work; then test restoring one shortcut and Restore All Defaults.
+16. Switch between the left/right and up/down arrow presets. Confirm Previous Item and Next Item always change as a pair. Try a global shortcut already used by another app and confirm the original shortcut keeps working.
+17. Create at least two pinboards with different colors. Confirm tabs can be selected and the right-click menu can rename, recolor, and delete them. Use `⌘⌥1`–`⌘⌥3` to jump to Recent and both pinboards. Use `⌃Tab` / `⌃⇧Tab` to verify forward and backward cycling, including wrapping at either end.
+18. Switch pinboards while typing in search and while a preview is open. Confirm search clears, the preview closes, and card focus returns. With a new-pinboard or rename dialog open, confirm those shortcuts do not steal form input.
+19. Drag the first, a middle, and the last history card onto a pinboard tab. Confirm the tab highlights, history retains the item, and the saved content appears only once.
+20. Within a pinboard, drag its first, a middle, and the last card to other positions. Confirm the insertion points and that the order persists after quitting and reopening the app.
+21. Turn on search or a type filter in a pinboard and confirm drag reordering is disabled. Clear the filter and confirm reordering works again.
 
-## 鼠标与触控板
+## Mouse and trackpad
 
-- 使用触控板轻点和按下点击各测一次（取决于系统“轻点来点按”设置），并分别验证普通单击、`Shift` 连续多选与 `⌘` 增减多选。
-- 如果有鼠标，再用鼠标重复单击和双击。
-- 使用触控板和鼠标分别重复“拖到收藏板”和“收藏板内排序”，包括横向滚动后的中间、末尾卡片。
-- 两者应该触发相同的 AppKit 鼠标事件；若只有一种设备失效，记录系统输入设置和事件日志后再判断原因。
+- Test both tap-to-click and physical trackpad clicks, where the system's Tap to click setting permits. For each, verify a normal click, `Shift` range selection, and `⌘` add/remove selection.
+- If a mouse is available, repeat single-click and double-click with it.
+- Repeat dragging to a pinboard and reordering within a pinboard using both trackpad and mouse, including middle and last cards after horizontal scrolling.
+- Both devices should produce the same AppKit mouse events. If only one fails, record the system input settings and event log before deciding why.
 
-## 安装包自动验证
+## Automated installed-package validation
 
-日常界面与输入改动优先运行：
+Run this first for routine UI and input changes:
 
 ```bash
 bash Scripts/validate_multi_display_package.sh
 ```
 
-脚本会拒绝单屏、无负坐标或所有屏幕缩放比例相同的环境。满足条件后，它会：
+The script rejects an environment with only one display, no negative coordinates, or identical scaling factors on every display. When the requirements are met, it:
 
-1. 构建 Intel + Apple Silicon Universal DMG，并验证签名与双架构。
-2. 挂载 DMG，把应用复制到 `/Applications` 下随机生成的临时验证目录，不覆盖已安装版本。
-3. 使用隔离演示数据逐屏启动安装包，不读写真实剪贴板历史。
-4. 把鼠标移到目标屏幕，不注入测试专用屏幕参数，让正式定位逻辑自行选择屏幕；随后通过 AppKit 事件验证第一张、中间和末尾卡片，包含滚动后的命中测试。
-5. 验证 `Shift` 点击、`⌘` 点击增选/移除非活动项/移除活动项、`Shift` 方向键、`⌘A`、删除与 `⌘Z` 恢复，并确认活动项变化后复制目标同步更新。
-6. 验证 `⌘⌥1` / `⌘⌥2`、`⌃Tab` 与 `⌃⇧Tab` 能在“最近”和演示收藏板之间直达、正向及反向切换。
-7. 核对窗口实际所属屏幕、窗口和 `visibleFrame`，验证负坐标与混合缩放比例。
-8. 自动退出、卸载镜像并删除临时安装目录。
+1. Builds an Intel + Apple Silicon Universal DMG and verifies its signature and both architectures.
+2. Mounts the DMG and copies the app into a randomly named temporary validation directory under `/Applications` without replacing the installed version.
+3. Launches the installed package on each display with isolated demo data, without reading or changing real clipboard history.
+4. Moves the pointer to the target display and lets the production placement logic choose the display without a test-only override. It then uses AppKit events to test the first, middle, and last cards, including hit testing after scrolling.
+5. Tests `Shift`-click, `⌘`-click to add/remove both inactive and active items, `Shift` + arrow keys, `⌘A`, delete, and `⌘Z` undo. It confirms that the copied item changes with the active item.
+6. Confirms `⌘⌥1` / `⌘⌥2` and `⌃Tab` / `⌃⇧Tab` jump to and cycle forward/backward between Recent and the demo pinboard.
+7. Checks the actual display owning the window, window bounds, and `visibleFrame`, including negative coordinates and mixed scaling factors.
+8. Quits automatically, unmounts the DMG, and removes the temporary installation directory.
 
-这个流程用于降低重复回归成本，但不能替代正式发布前的真实安装包主副屏检查，也不覆盖签名或 Entitlements 变化后的 TCC 权限、向真实外部应用粘贴，以及字体、颜色、阴影等像素级视觉判断。
+This reduces repeated regression work, but it cannot replace a manual check of the actual release package on both the primary and a secondary display. It also does not cover TCC permission after signing or entitlement changes, pasting into a real external app, or pixel-level judgments about fonts, colors, and shadows.
 
-## 回归检查
+## Regression checks
 
-- `NSView.hitTest(_:)` 中的点必须从父视图转换为当前视图坐标后，才能与 `bounds` 比较。
-- 不要在集合视图的 `hitTest(_:)` 内调用会再次触发命中测试的索引查询，避免递归。
-- 使用鼠标所在的 `NSScreen.frame` / `visibleFrame` 定位窗口。
-- 真实粘贴需要辅助功能权限；自动化冒烟测试不能替代安装包权限测试。
-- 快捷键录制必须在主屏幕和副屏幕各测一次；中文输入法存在组合文本时，候选选择、确认和取消不能被自定义命令抢走。
+- In `NSView.hitTest(_:)`, convert a point from parent-view coordinates into the current view's coordinates before comparing it with `bounds`.
+- Do not query collection-view indexes inside `hitTest(_:)` if that query triggers hit testing again; it can recurse.
+- Use `NSScreen.frame` / `visibleFrame` for the display containing the pointer when positioning windows.
+- Real pasting requires Accessibility permission. An automated smoke test does not replace permission testing on an installed package.
+- Record and test shortcuts on both the primary and secondary displays. When a Chinese input method has marked text, candidate selection, confirmation, and cancellation must not be intercepted by custom commands.
 
-## 发布前
+## Before release
 
-1. 运行项目测试。
-2. 运行 `Scripts/validate_multi_display_package.sh`，完成 Universal DMG 和真实双屏安装包自动验证。
-3. 把 DMG 中的应用安装到隔离目录，在主屏和副屏各完成一次核心流程与视觉检查。
-4. 在系统设置中确认新应用的辅助功能权限有效，并做一次真实跨应用粘贴。
-5. 若修改了像素级视觉效果，按“截图与视觉验证”规则补充有目标的视觉证据。
-6. 将脚本覆盖的屏幕布局和确实未覆盖项写进发布验证记录；不提交临时过程记录到仓库。
+1. Run the project tests.
+2. Run `Scripts/validate_multi_display_package.sh` to build the Universal DMG and perform automated installed-package validation with two physical displays.
+3. Install the app from the DMG into an isolated directory. Complete the core flows and visual checks once on each of the primary and secondary displays.
+4. Confirm the new app's Accessibility permission is effective in System Settings and perform a real paste into another app.
+5. If pixel-level visual effects changed, collect targeted visual evidence according to the project's Screenshot and Visual Verification rules.
+6. Record the display layouts covered by the script and anything truly untested in the release validation record. Do not commit temporary process notes.

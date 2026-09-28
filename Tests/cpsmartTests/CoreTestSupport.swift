@@ -44,6 +44,7 @@ enum CoreTestSupport {
         try testAdaptivePreviewSizing()
         try testPreviewSessionAndQuickLookStore(in: temporaryDirectory)
         try testUpdateSupport()
+        try testLocalization()
         try testShortcutDefaultsAndValidation()
         try testShortcutPersistenceAndReset()
         try testShortcutResetAndSwap()
@@ -64,6 +65,7 @@ enum CoreTestSupport {
         try testPreviewSessionAndQuickLookStore(in: directory)
     }
     static func runUpdateSupport() throws { try testUpdateSupport() }
+    static func runLocalization() throws { try testLocalization() }
     static func runDeduplication(in directory: URL) throws { try testDeduplication(in: directory) }
     static func runUsagePromotion(in directory: URL) throws { try testUsagePromotion(in: directory) }
     static func runPinboardLifecycle(in directory: URL) throws { try testPinboardLifecycle(in: directory) }
@@ -393,13 +395,13 @@ enum CoreTestSupport {
         let openedInstructions = UpdateSupport.installationInstructions(installerOpened: true)
         let savedInstructions = UpdateSupport.installationInstructions(installerOpened: false)
         try require(
-            openedInstructions.contains("1. 点击下方“退出 cpsmart”")
-                && openedInstructions.contains("打开正确页面并自动退出")
-                && openedInstructions.contains("点击“+”添加 /Applications/cpsmart.app"),
+            openedInstructions.contains(L10n.tr("安装镜像已经打开。"))
+                && openedInstructions.contains("1.")
+                && openedInstructions.contains("/Applications/cpsmart.app"),
             "downloaded update instructions did not explain installation and optional permission repair"
         )
         try require(
-            savedInstructions.contains("“下载”文件夹，请先打开它"),
+            savedInstructions.contains(L10n.tr("安装包已保存到“下载”文件夹，请先打开它。")),
             "saved installer instructions did not explain how to open the DMG"
         )
         try require(
@@ -461,6 +463,44 @@ enum CoreTestSupport {
             alertFrame.midX == negativeOriginVisibleFrame.midX
                 && alertFrame.midY == negativeOriginVisibleFrame.midY,
             "update alert was not centered on the selected display"
+        )
+    }
+
+    private static func testLocalization() throws {
+        try require(L10n.tr("全部", language: "en") == "All", "English resource was not loaded")
+        try require(L10n.tr("全部", language: "zh-Hans") == "全部", "Chinese resource was not loaded")
+        try require(L10n.tr("语言", language: "en") == "Language", "language menu was not translated")
+        try require(AppLanguage.selected(in: testDefaults) == .system, "language did not default to system")
+        try require(
+            AppLanguage.system.resolvedCode(preferredLanguage: "zh-Hans-CN") == "zh-Hans"
+                && AppLanguage.system.resolvedCode(preferredLanguage: "fr-FR") == "en",
+            "system language fallback was incorrect"
+        )
+        AppLanguage.select(.english, in: testDefaults)
+        try require(
+            AppLanguage.selected(in: testDefaults) == .english
+                && AppLanguage.english.resolvedCode(preferredLanguage: "zh-Hans-CN") == "en",
+            "English override was not retained"
+        )
+        AppLanguage.select(.simplifiedChinese, in: testDefaults)
+        try require(
+            AppLanguage.selected(in: testDefaults) == .simplifiedChinese
+                && AppLanguage.simplifiedChinese.resolvedCode(preferredLanguage: "en-US") == "zh-Hans",
+            "Chinese override was not retained"
+        )
+        AppLanguage.select(.system, in: testDefaults)
+        try require(
+            AppLanguage.selected(in: testDefaults) == .system
+                && testDefaults.object(forKey: "appLanguage") == nil,
+            "returning to system language did not clear the override"
+        )
+        try require(
+            L10n.format("在“{0}”中搜索", ["Notes {0}"], language: "en") == "Search in “Notes {0}”",
+            "format argument was altered or not translated"
+        )
+        try require(
+            L10n.tr("accessibility.repairInstructions", language: "en").contains("/Applications/cpsmart.app"),
+            "English permission repair instructions are missing"
         )
     }
 

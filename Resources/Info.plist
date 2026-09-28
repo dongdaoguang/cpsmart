@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleDevelopmentRegion</key>
-    <string>zh_CN</string>
+    <string>en</string>
     <key>CFBundleDisplayName</key>
     <string>cpsmart</string>
     <key>CFBundleExecutable</key>
@@ -29,7 +29,7 @@
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSAccessibilityUsageDescription</key>
-    <string>cpsmart 仅在你按回车或双击卡片后，将选中的剪贴板内容粘贴到原来的应用。</string>
+    <string>cpsmart uses Accessibility only to paste the selected clipboard item into the previous app when you press Return or double-click a card.</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
 </dict>

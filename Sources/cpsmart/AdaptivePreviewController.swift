@@ -140,7 +140,7 @@ private class PreviewContentViewController: NSViewController {
         let expandButton = NSButton(
             image: NSImage(
                 systemSymbolName: "arrow.up.left.and.arrow.down.right",
-                accessibilityDescription: "在 Quick Look 中打开"
+                accessibilityDescription: L10n.tr("在 Quick Look 中打开")
             ) ?? NSImage(),
             target: self,
             action: #selector(expandPreview)
@@ -149,7 +149,7 @@ private class PreviewContentViewController: NSViewController {
         expandButton.bezelStyle = .inline
         expandButton.isBordered = false
         expandButton.contentTintColor = palette.textSecondary
-        expandButton.toolTip = "在 Quick Look 中打开"
+        expandButton.toolTip = L10n.tr("在 Quick Look 中打开")
 
         let separator = NSView()
         separator.translatesAutoresizingMaskIntoConstraints = false
@@ -212,7 +212,7 @@ private final class TextPreviewViewController: PreviewContentViewController {
 
     override func loadView() {
         let root = makeRootView()
-        let header = makeHeader(title: "文本", detail: "\(text.count) 字符")
+        let header = makeHeader(title: L10n.tr("文本"), detail: L10n.format("{0} 字符", [text.count]))
         let scrollView = NSTextView.scrollableTextView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.drawsBackground = false
@@ -236,7 +236,7 @@ private final class TextPreviewViewController: PreviewContentViewController {
         textView.isHorizontallyResizable = false
         textView.isVerticallyResizable = true
         textView.string = text
-        textView.setAccessibilityLabel("文本预览")
+        textView.setAccessibilityLabel(L10n.tr("文本预览"))
 
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineBreakMode = .byWordWrapping
@@ -290,7 +290,7 @@ private final class ImagePreviewViewController: PreviewContentViewController {
     override func loadView() {
         let root = makeRootView()
         let dimensions = "\(Int(pixelSize.width)) × \(Int(pixelSize.height))"
-        let header = makeHeader(title: "图片", detail: dimensions)
+        let header = makeHeader(title: L10n.tr("图片"), detail: dimensions)
 
         let imageBackground = NSView()
         imageBackground.translatesAutoresizingMaskIntoConstraints = false
@@ -309,7 +309,7 @@ private final class ImagePreviewViewController: PreviewContentViewController {
         imageView.setContentHuggingPriority(.defaultLow, for: .vertical)
         imageView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         imageView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
-        imageView.setAccessibilityLabel("图片预览，尺寸 \(dimensions)")
+        imageView.setAccessibilityLabel(L10n.format("图片预览，尺寸 {0}", [dimensions]))
 
         imageBackground.addSubview(imageView)
         root.addSubview(header)

@@ -77,14 +77,14 @@ enum PinboardColor: String, Codable, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .red: return "红色"
-        case .orange: return "橙色"
-        case .yellow: return "黄色"
-        case .green: return "绿色"
-        case .blue: return "蓝色"
-        case .purple: return "紫色"
-        case .pink: return "粉色"
-        case .gray: return "灰色"
+        case .red: return L10n.tr("红色")
+        case .orange: return L10n.tr("橙色")
+        case .yellow: return L10n.tr("黄色")
+        case .green: return L10n.tr("绿色")
+        case .blue: return L10n.tr("蓝色")
+        case .purple: return L10n.tr("紫色")
+        case .pink: return L10n.tr("粉色")
+        case .gray: return L10n.tr("灰色")
         }
     }
 }

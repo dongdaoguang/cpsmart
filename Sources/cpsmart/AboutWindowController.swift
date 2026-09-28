@@ -15,7 +15,7 @@ final class AboutWindowController: NSWindowController, NSWindowDelegate {
         )
         super.init(window: window)
 
-        window.title = "关于 cpsmart"
+        window.title = L10n.tr("关于 cpsmart")
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
@@ -66,6 +66,14 @@ final class AboutWindowController: NSWindowController, NSWindowDelegate {
             }
         }
         #endif
+    }
+
+    func refreshLocalization() {
+        guard let window else { return }
+        window.title = L10n.tr("关于 cpsmart")
+        if window.isVisible {
+            rebuildContent(window)
+        }
     }
 
     /// 替换窗口内容并把滚动位置重置回顶部——替换 contentView 后 NSScrollView
@@ -194,9 +202,9 @@ final class AboutWindowController: NSWindowController, NSWindowDelegate {
             versionText.bottomAnchor.constraint(equalTo: versionBadge.bottomAnchor, constant: -2.5)
         ])
 
-        let tagline = label("快速找到刚刚复制的内容", size: 14, weight: .medium)
+        let tagline = label(L10n.tr("快速找到刚刚复制的内容"), size: 14, weight: .medium)
         let privacy = label(
-            "轻量、原生、完全本地。剪贴板历史不会上传。",
+            L10n.tr("轻量、原生、完全本地。剪贴板历史不会上传。"),
             size: 12,
             color: .secondaryLabelColor
         )
@@ -216,12 +224,12 @@ final class AboutWindowController: NSWindowController, NSWindowDelegate {
 
     private func makeQuickStartCard() -> NSView {
         makeCard(
-            title: "快速开始",
+            title: L10n.tr("快速开始"),
             symbol: "sparkles",
             rows: [
-                ("", "在任何应用中复制文本、图片或文件。"),
-                ("", "按 \(shortcutStore.displayString(for: .toggleHistory)) 打开历史浮窗，再按 \(shortcutStore.displayString(for: .toggleSearchFocus)) 进入搜索。"),
-                ("", "选中后按 \(shortcutStore.displayString(for: .pasteSelection))，或双击卡片，粘贴回原来的应用。")
+                ("", L10n.tr("在任何应用中复制文本、图片或文件。")),
+                ("", L10n.format("按 {0} 打开历史浮窗，再按 {1} 进入搜索。", [shortcutStore.displayString(for: .toggleHistory), shortcutStore.displayString(for: .toggleSearchFocus)])),
+                ("", L10n.format("选中后按 {0}，或双击卡片，粘贴回原来的应用。", [shortcutStore.displayString(for: .pasteSelection)]))
             ].map { (step: $0.0, detail: $0.1) }
         ) { [weak self] _, detail in
             let line = self?.label(detail, size: 12.5) ?? NSTextField()
@@ -233,24 +241,24 @@ final class AboutWindowController: NSWindowController, NSWindowDelegate {
 
     private func makeKeyboardCard() -> NSView {
         let rows: [(key: String, detail: String)] = [
-            (shortcutStore.displayString(for: .toggleHistory), "打开或关闭剪贴板历史"),
-            (shortcutStore.displayString(for: .selectPrevious), "选择上一张卡片"),
-            (shortcutStore.displayString(for: .selectNext), "选择下一张卡片"),
-            (shortcutStore.displayString(for: .toggleQuickLook), "自适应预览所选内容"),
-            (shortcutStore.displayString(for: .toggleSearchFocus), "在卡片与搜索框之间切换"),
-            (shortcutStore.displayString(for: .pasteSelection), "粘贴所选内容到原应用"),
-            (shortcutStore.displayString(for: .togglePin), "置顶或取消置顶"),
-            ("⌘⌥1…9", "直接切换最近或前八个收藏板"),
-            ("⌃Tab / ⌃⇧Tab", "向前或向后循环切换收藏板"),
-            (shortcutStore.displayString(for: .deleteSelection), "删除所选记录"),
-            (shortcutStore.displayString(for: .filterAll), "筛选全部记录"),
-            (shortcutStore.displayString(for: .filterText), "筛选文本"),
-            (shortcutStore.displayString(for: .filterImage), "筛选图片"),
-            (shortcutStore.displayString(for: .filterFiles), "筛选文件"),
-            (shortcutStore.displayString(for: .clearSearchOrClose), "先清除搜索，再关闭窗口")
+            (shortcutStore.displayString(for: .toggleHistory), L10n.tr("打开或关闭剪贴板历史")),
+            (shortcutStore.displayString(for: .selectPrevious), L10n.tr("选择上一张卡片")),
+            (shortcutStore.displayString(for: .selectNext), L10n.tr("选择下一张卡片")),
+            (shortcutStore.displayString(for: .toggleQuickLook), L10n.tr("自适应预览所选内容")),
+            (shortcutStore.displayString(for: .toggleSearchFocus), L10n.tr("在卡片与搜索框之间切换")),
+            (shortcutStore.displayString(for: .pasteSelection), L10n.tr("粘贴所选内容到原应用")),
+            (shortcutStore.displayString(for: .togglePin), L10n.tr("置顶或取消置顶")),
+            ("⌘⌥1…9", L10n.tr("直接切换最近或前八个收藏板")),
+            ("⌃Tab / ⌃⇧Tab", L10n.tr("向前或向后循环切换收藏板")),
+            (shortcutStore.displayString(for: .deleteSelection), L10n.tr("删除所选记录")),
+            (shortcutStore.displayString(for: .filterAll), L10n.tr("筛选全部记录")),
+            (shortcutStore.displayString(for: .filterText), L10n.tr("筛选文本")),
+            (shortcutStore.displayString(for: .filterImage), L10n.tr("筛选图片")),
+            (shortcutStore.displayString(for: .filterFiles), L10n.tr("筛选文件")),
+            (shortcutStore.displayString(for: .clearSearchOrClose), L10n.tr("先清除搜索，再关闭窗口"))
         ]
         return makeCard(
-            title: "键盘快捷键",
+            title: L10n.tr("键盘快捷键"),
             symbol: "keyboard",
             rows: rows.map { (step: $0.key, detail: $0.detail) },
             twoColumns: true
@@ -261,15 +269,15 @@ final class AboutWindowController: NSWindowController, NSWindowDelegate {
 
     private func makePointerCard() -> NSView {
         makeCard(
-            title: "鼠标与触控板",
+            title: L10n.tr("鼠标与触控板"),
             symbol: "cursorarrow.click.2",
             rows: [
-                ("单击", "选择卡片并复制内容"),
-                ("双击", "选择卡片并直接粘贴"),
-                ("点搜索框", "进入搜索输入"),
-                ("点空白处", "退出搜索，恢复空格预览")
+                (L10n.tr("单击"), L10n.tr("选择卡片并复制内容")),
+                (L10n.tr("双击"), L10n.tr("选择卡片并直接粘贴")),
+                (L10n.tr("点搜索框"), L10n.tr("进入搜索输入")),
+                (L10n.tr("点空白处"), L10n.tr("退出搜索，恢复空格预览"))
             ].map { (step: $0.0, detail: $0.1) },
-            note: "主屏幕与副屏幕均支持以上操作；触控板与鼠标的点击行为一致。"
+            note: L10n.tr("主屏幕与副屏幕均支持以上操作；触控板与鼠标的点击行为一致。")
         ) { [weak self] lead, detail in
             self?.makeLeadRow(lead: lead, detail: detail) ?? NSView()
         }
@@ -277,15 +285,15 @@ final class AboutWindowController: NSWindowController, NSWindowDelegate {
 
     private func makePrivacyCard() -> NSView {
         makeCard(
-            title: "权限、隐私与清理",
+            title: L10n.tr("权限、隐私与清理"),
             symbol: "hand.raised.fill",
             rows: [
-                ("辅助功能", "仅在粘贴时用来向原应用发送一次 ⌘V。"),
-                ("本地存储", "历史只保存在这台 Mac，不经过网络。"),
-                ("排除应用", "菜单栏可排除指定应用，不再记录其复制内容。"),
-                ("清空历史", "默认保留置顶记录；按住 ⌥ 打开菜单可全部清空。")
+                (L10n.tr("辅助功能"), L10n.tr("仅在粘贴时用来向原应用发送一次 ⌘V。")),
+                (L10n.tr("本地存储"), L10n.tr("历史只保存在这台 Mac，不经过网络。")),
+                (L10n.tr("排除应用"), L10n.tr("菜单栏可排除指定应用，不再记录其复制内容。")),
+                (L10n.tr("清空历史"), L10n.tr("默认保留置顶记录；按住 ⌥ 打开菜单可全部清空。"))
             ].map { (step: $0.0, detail: $0.1) },
-            note: "权限路径：系统设置 → 隐私与安全性 → 辅助功能。"
+            note: L10n.tr("权限路径：系统设置 → 隐私与安全性 → 辅助功能。")
         ) { [weak self] lead, detail in
             self?.makeLeadRow(lead: lead, detail: detail) ?? NSView()
         }
@@ -422,7 +430,7 @@ final class AboutWindowController: NSWindowController, NSWindowDelegate {
         footer.alignment = .centerY
         footer.spacing = 6
 
-        let signature = label("cpsmart · 为 macOS 设计 ·", size: 11, color: .tertiaryLabelColor)
+        let signature = label(L10n.tr("cpsmart · 为 macOS 设计 ·"), size: 11, color: .tertiaryLabelColor)
         // NSTextField 的 .link 属性在不可选中的 label 里不会响应点击，
         // 用无边框按钮实现真正的跳转。
         let link = NSButton(
@@ -466,11 +474,11 @@ final class AboutWindowController: NSWindowController, NSWindowDelegate {
 
     private var displayVersion: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
-        guard let version else { return "开发版" }
+        guard let version else { return L10n.tr("开发版") }
         guard let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String else {
-            return "版本 \(version)"
+            return L10n.format("版本 {0}", [version])
         }
-        return "版本 \(version)（构建 \(build)）"
+        return L10n.format("版本 {0}（构建 {1}）", [version, build])
     }
 
     private func label(

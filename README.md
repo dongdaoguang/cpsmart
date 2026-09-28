@@ -1,182 +1,187 @@
 # cpsmart
 
-cpsmart 是一款轻量、原生、剪贴板数据完全保存在本地的 macOS 剪贴板历史工具。它记录文本、图片和文件复制历史，默认通过 `⇧⌘V` 在当前屏幕底部打开横向历史窗口。
+**English** | [简体中文](README.zh-CN.md)
 
-## 主要功能
+cpsmart is a lightweight, native macOS clipboard history app. Your clipboard data stays on your Mac. It saves copied text, images, and files, and opens a horizontal history window at the bottom of the current display with `⇧⌘V` by default.
 
-- 本地记录文本、图片和文件，不上传剪贴板历史。
-- 打开后默认浏览卡片，默认按 `Tab` 进入或退出搜索。
-- 全局唤起键和浮窗操作均可由用户重新绑定，支持方向键布局预设、冲突交换、单项或全部恢复默认。
-- 使用 `←` / `→` 选择，空格键自适应预览文本和图片（可展开到完整 Quick Look），回车直接粘贴。
-- 鼠标单击卡片选择并复制，双击返回原应用并粘贴。
-- 支持 `Shift` 连续多选、`⌘` 点选和 `⌘A` 全选当前筛选结果，可批量删除、移出或收藏到收藏板。
-- 按 `⌘Z` 可恢复最近一次删除或从收藏板移出的内容，并保留原有顺序。
-- 向目标应用发出粘贴后，该条记录会按最近使用顺序移到前面；置顶记录始终优先。
-- 按全部、文本、图片和文件筛选，支持忽略大小写、变音符号和字符宽度的搜索。
-- 显示图片缩略图、来源应用名称与图标。
-- 默认使用 `⌘P` 置顶；置顶记录不会被普通清空、数量上限或保留期限删除。
-- 创建带名称和颜色的收藏板，长期保存常用文本、命令、图片和文件。
-- 把历史卡片拖到收藏板标签即可收藏；收藏板内可拖动卡片调整常用顺序。
-- 支持浅色、深色和跟随系统外观。
-- 自动跳过带标准隐藏、临时或自动生成标记的剪贴板内容。
-- 支持暂停记录和登录时启动。
-- 默认每天检查一次 GitHub 最新正式版，也可从菜单栏手动检查；发现新版后可直接下载并打开官方 DMG。
+## Features
 
-历史默认保留 200 条、最多约 25 MB，单张图片最大 8 MB。历史和收藏板数据分别保存在：
+- Keep a local history of copied text, images, and files without uploading clipboard contents.
+- Browse cards when the window opens; press `Tab` to enter or leave search by default.
+- Reassign the global shortcut and window actions. Choose an arrow-key layout, swap conflicting bindings, and restore one or all defaults.
+- Select items with `←` / `→`, preview text and images with `Space` (with an option to open the full Quick Look preview), and paste with `Return`.
+- Single-click a card to select and copy it; double-click to return to the previous app and paste it.
+- Select ranges with `Shift`, add or remove cards with `⌘`-click, and select all current search results with `⌘A`. Delete, remove, or save multiple items to a pinboard at once.
+- Undo the most recent deletion or removal from a pinboard with `⌘Z`, preserving the original order.
+- Move an item toward the front of history when you paste it into another app. Pinned items remain ahead of other items.
+- Filter by All, Text, Images, or Files. Search ignores case, diacritics, and character width.
+- See image thumbnails and the source app's name and icon.
+- Pin items with `⌘P` by default. Ordinary clearing, history limits, and retention periods do not delete pinned items.
+- Create named, color-coded pinboards for text, commands, images, and files you want to keep.
+- Drag a history card onto a pinboard tab to save it, and drag cards within a pinboard to reorder them.
+- Use light mode, dark mode, or the system appearance.
+- Choose Follow System, English, or Simplified Chinese from the menu bar's Language submenu. The interface updates immediately and keeps your choice across launches.
+- Automatically skip clipboard contents marked by standard concealed, transient, or auto-generated flags.
+- Pause recording or launch cpsmart at login.
+- Check GitHub for the latest stable release once a day by default, or check from the menu bar. Download and open the official DMG from the app when an update is available.
+
+History keeps 200 items by default, up to approximately 25 MB in total; a single image may be up to 8 MB. History and pinboard data are stored separately:
 
 ```text
 ~/Library/Application Support/cpsmart/history.json
 ~/Library/Application Support/cpsmart/pinboards.json
 ```
 
-收藏板保存独立内容快照，不会因为历史记录被清理而消失。
+Pinboards store independent snapshots, so clearing history does not remove their contents.
 
-## 安装与首次使用
+## Install and get started
 
-### 1. 安装应用
+### 1. Install the app
 
-1. 在 GitHub Releases 下载 `cpsmart-<版本>-universal.dmg`。
-2. 双击下载好的 DMG。
-3. 在打开的窗口中，把 `cpsmart.app` 拖到 `Applications`（应用程序）文件夹。
-4. 等待复制完成，然后推出 DMG。
-5. 打开 Finder →“应用程序”，双击 cpsmart。启动成功后，菜单栏会出现剪贴板图标。
+1. Download `cpsmart-<version>-universal.dmg` from [GitHub Releases](https://github.com/dongdaoguang/cpsmart/releases).
+2. Double-click the downloaded DMG.
+3. Drag `cpsmart.app` into the `Applications` folder in the opened window.
+4. Wait for the copy to finish, then eject the DMG.
+5. Open Finder → Applications and double-click cpsmart. A clipboard icon appears in the menu bar after launch.
 
-> macOS 不会自动在桌面创建图标。如有需要，可以在“应用程序”中右键 cpsmart，选择“制作替身”，再把替身拖到桌面。应用本体应留在“应用程序”文件夹。
+> macOS does not create a desktop icon automatically. If you want one, right-click cpsmart in Applications, choose Make Alias, and move the alias to the desktop. Keep the actual app in Applications.
 
-### 2. 如果 macOS 阻止打开
+### 2. If macOS blocks the app
 
-使用 Developer ID 签名并经过 Apple 公证的发布包通常可以直接打开。cpsmart 1.9.0 及后续版本使用固定自签名证书，首次打开时 macOS 仍可能显示“无法验证开发者”：
+A release signed with Developer ID and notarized by Apple should generally open normally. Releases from cpsmart 1.9.0 onward use a consistent self-signed certificate; macOS may still show an “unidentified developer” warning the first time you open one:
 
-1. 在 Finder →“应用程序”中右键 cpsmart，选择“打开”。
-2. 如果仍被阻止，打开“系统设置 → 隐私与安全性”。
-3. 在页面下方的“安全性”区域找到 cpsmart，点击“仍要打开”。
+1. In Finder → Applications, right-click cpsmart and choose Open.
+2. If macOS still blocks it, open System Settings → Privacy & Security.
+3. Find cpsmart in the Security section near the bottom and click Open Anyway.
 
-不要运行来源不明的“解除限制”脚本，也不要全局关闭 macOS 的安全检查。
+Do not run unknown “unblock” scripts or disable macOS security checks system-wide.
 
-### 3. 开启粘贴权限
+### 3. Allow automatic pasting
 
-cpsmart 只有在你按 `Return` 或双击卡片自动粘贴时，才需要“辅助功能”权限：
+cpsmart needs Accessibility permission only when you use `Return` or double-click a card to paste automatically:
 
-1. 打开“系统设置 → 隐私与安全性 → 辅助功能”。
-2. 点击应用列表下方的 `+`。
-3. 选择“应用程序”文件夹中的 cpsmart。
-4. 打开 cpsmart 右侧的开关。
-5. 完全退出 cpsmart，然后重新打开。
+1. Open System Settings → Privacy & Security → Accessibility.
+2. Click the `+` below the app list.
+3. Select cpsmart from Applications.
+4. Turn on the switch beside cpsmart.
+5. Quit cpsmart completely and reopen it.
 
-未开启这项权限时，记录、搜索、预览和复制仍可使用，但自动粘贴不会生效。
+Recording, searching, previewing, and copying still work without this permission; automatic pasting does not.
 
-### 4. 确认安装成功
+### 4. Confirm the installation
 
-1. 在任意应用中复制一段文字。
-2. 按 `⇧⌘V` 打开剪贴板历史。
-3. 单击卡片可选择并复制；按 `Return` 或双击卡片可粘贴回原应用。
+1. Copy some text in any app.
+2. Press `⇧⌘V` to open clipboard history.
+3. Single-click the card to select and copy it, or press `Return` or double-click it to paste into the previous app.
 
-## 更新已有版本
+## Update an existing installation
 
-1. 从菜单栏选择“检查更新…”。cpsmart 默认也会每天自动检查一次；可在同一菜单关闭“自动检查更新”。
-2. 发现新版后选择“下载更新”，应用会把官方 DMG 保存到“下载”文件夹并自动打开。
-3. 在下载完成提示中点击“退出 cpsmart”，再把新版 cpsmart 拖到“应用程序”，系统询问时选择“替换”。
-4. 重新打开 cpsmart。
+1. Choose Check for Updates… from the menu bar. cpsmart also checks automatically once a day by default; you can turn off automatic checks from the same menu.
+2. When an update appears, choose Download Update. cpsmart saves the official DMG to Downloads and opens it.
+3. Click Quit cpsmart in the download-complete prompt, then drag the new cpsmart into Applications and choose Replace if macOS asks.
+4. Reopen cpsmart.
 
-更新检查只跟随 `dongdaoguang/cpsmart` 的“最新正式 Release”页面来读取版本 Tag，并只接受该仓库 Release 下的 HTTPS DMG 下载地址。它不使用有频率限额的 GitHub API，也不会上传剪贴板历史或其他本地内容。
+The updater reads version tags only from the [latest stable release](https://github.com/dongdaoguang/cpsmart/releases/latest) of `dongdaoguang/cpsmart` and accepts HTTPS DMG download URLs only from that repository's release. It does not use the rate-limited GitHub API or upload clipboard history or other local content.
 
-如果更新后自动粘贴确实失效，再次尝试粘贴并选择“清除旧记录、打开设置并退出”：cpsmart 会通过系统命令只清除自己的旧辅助功能记录、打开正确页面并自动退出。旧记录清除后列表中没有 cpsmart 属于正常现象；仍需点击“+”选择 `/Applications/cpsmart.app`、打开开关，再重新启动应用。macOS 不允许应用替用户完成这一步。正常更新时不要主动清除权限。
+If automatic pasting actually stops working after an update, try pasting again and choose “Clear Old Record, Open Settings and Quit.” cpsmart then uses a system command to remove only its own old Accessibility entry, opens the appropriate settings page, and quits. It is normal for cpsmart to disappear from the list after that step. Click `+`, select `/Applications/cpsmart.app`, enable it, and reopen the app. macOS does not let the app grant this permission for you. Do not clear the permission during a normal update.
 
-## 使用方式
+## Use cpsmart
 
-下表为默认快捷键。可从菜单栏选择“快捷键设置…”重新绑定；修改会立即生效并在重启后保留。设置页可在左右键与上下键布局之间切换，重复绑定时可交换两项，也可单独或一次还原全部默认按键。收藏板直达和循环切换是固定的窗口导航快捷键，不参与自定义绑定。
+These are the default shortcuts. Choose Shortcut Settings… from the menu bar to reassign them. Changes take effect immediately and persist across launches. The settings window can switch between left/right and up/down arrow layouts, swap duplicate assignments, and restore individual or all defaults. The direct pinboard and cycle shortcuts are fixed window-navigation shortcuts and cannot be reassigned.
 
-| 操作 | 键盘 | 鼠标 |
+| Action | Keyboard | Mouse |
 |---|---|---|
-| 打开或关闭历史 | `⇧⌘V` | 菜单栏“打开剪贴板历史” |
-| 选择并复制 | `←` / `→` | 单击卡片 |
-| 连续多选 | `Shift` + `←` / `→` | `Shift` + 单击卡片 |
-| 增减多选 | — | `⌘` + 单击卡片 |
-| 全选当前结果 | `⌘A` | — |
-| 粘贴 | `Return` | 双击卡片 |
-| 预览所选内容 | `Space` | — |
-| 搜索/返回浏览 | `Tab` | 点击搜索框/搜索框外 |
-| 置顶 | `⌘P` | — |
-| 收藏到收藏板 | `⌘D` 后选择 | 把历史卡片拖到收藏板标签，或点击“收藏到…” |
-| 直达最近/收藏板 | `⌘⌥1`–`⌘⌥9` | 点击收藏板标签 |
-| 前后切换收藏板 | `⌃Tab` / `⌃⇧Tab` | 点击收藏板标签 |
-| 调整收藏顺序 | — | 在收藏板内横向拖动卡片 |
-| 删除所选 | `⌘⌫` | — |
-| 撤销最近删除/移出 | `⌘Z` | — |
-| 类型筛选 | `⌘1`–`⌘4` | 点击类型筛选器 |
-| 清除搜索或关闭 | `Esc` | — |
+| Open or close history | `⇧⌘V` | Menu bar → Open Clipboard History |
+| Select and copy | `←` / `→` | Single-click a card |
+| Select a range | `Shift` + `←` / `→` | `Shift`-click a card |
+| Add or remove from selection | — | `⌘`-click a card |
+| Select all current results | `⌘A` | — |
+| Paste | `Return` | Double-click a card |
+| Preview the active item | `Space` | — |
+| Search / return to browsing | `Tab` | Click in / outside the search field |
+| Pin | `⌘P` | — |
+| Save to a pinboard | `⌘D`, then choose a board | Drag a history card to a pinboard tab, or click Save to… |
+| Jump to Recent / a pinboard | `⌘⌥1`–`⌘⌥9` | Click a pinboard tab |
+| Cycle through pinboards | `⌃Tab` / `⌃⇧Tab` | Click a pinboard tab |
+| Reorder pinboard items | — | Drag cards horizontally within a pinboard |
+| Delete selected items | `⌘⌫` | — |
+| Undo the last deletion / removal | `⌘Z` | — |
+| Filter by type | `⌘1`–`⌘4` | Click a type filter |
+| Clear search or close | `Esc` | — |
 
-普通“清空历史”会保留置顶记录。按住 `⌥` 打开菜单，可选择“清空全部历史（含置顶）”。
+Ordinary Clear History keeps pinned items. Hold `⌥` while opening the menu to choose Clear All History (Including Pinned).
 
-点击收藏板右侧的 `+` 可以新建收藏板。`⌘⌥1` 打开“最近”，`⌘⌥2`–`⌘⌥9` 打开前八个收藏板，`⌃Tab` / `⌃⇧Tab` 可循环切换。右键收藏板标签可重命名、修改颜色或删除；在收藏板内按 `⌘⌫` 会移出全部所选内容。多选时，预览和粘贴仍使用带活动焦点的当前卡片。搜索或类型筛选开启时不能调整收藏顺序，清除筛选后即可继续拖动。
+Click `+` to the right of the pinboard tabs to create a pinboard. `⌘⌥1` opens Recent, `⌘⌥2`–`⌘⌥9` open the first eight pinboards, and `⌃Tab` / `⌃⇧Tab` cycle through them. Right-click a pinboard tab to rename it, change its color, or delete it. Within a pinboard, `⌘⌫` removes all selected items. With multiple items selected, preview and paste still use the card with active focus. You cannot reorder pinboard items while search or a type filter is active; clear the filter to resume dragging.
 
-## 开发与测试
+## Develop and test
 
-要求 macOS 13 或更高版本，以及 Apple Command Line Tools。
+Requires macOS 13 or later and Apple Command Line Tools.
 
 ```bash
 swift build
 bash Scripts/run_tests.sh
 ```
 
-连接至少两块真实显示器后，可自动构建 Universal DMG、安装到 `/Applications` 下的隔离临时目录，并逐屏验证窗口位置、首张/中间/末尾卡片点击、Shift 多选、全选和删除撤销：
+With at least two physical displays connected, this command builds a Universal DMG, installs it in an isolated temporary directory under `/Applications`, and checks window placement, clicks on the first, middle, and last cards, Shift selection, Select All, and delete/undo on each display:
 
 ```bash
 bash Scripts/validate_multi_display_package.sh
 ```
 
-验证使用隔离演示数据，不读取或修改真实剪贴板历史；运行期间会自动把鼠标移动到每块显示器中央。自动验证不能替代正式发布前的真实安装包主副屏检查，也不覆盖辅助功能授权和真实跨应用粘贴。
+Validation uses isolated demo data and does not read or change your real clipboard history. It moves the pointer to the center of each display while running. Automated checks do not replace a manual check of the release package on both the primary and a secondary display. They also do not cover Accessibility authorization or real pasting between apps.
 
-## 构建安装包
+See the [multi-display and input testing checklist](docs/MULTI_DISPLAY_TESTING.md) for the full manual checks.
 
-版本号分别保存在 `VERSION` 和 `BUILD_NUMBER`。发布新版本前更新这两个文件和 `CHANGELOG.md`。
+## Build a DMG
 
-本地测试包：
+The version and build number are stored in `VERSION` and `BUILD_NUMBER`. Update both files and the [changelog](CHANGELOG.md) before a new release.
+
+For a local test package:
 
 ```bash
 bash Scripts/build_dmg.sh --local
 ```
 
-脚本使用 Release 优化分别构建 Intel 与 Apple Silicon 版本，合并成 Universal 2 应用，并输出到：
+The script builds optimized Intel and Apple Silicon binaries, combines them into a Universal 2 app, and writes:
 
 ```text
-dist/cpsmart-<版本>-universal.dmg
+dist/cpsmart-<version>-universal.dmg
 ```
 
-没有 Developer ID 时，可使用由发布者长期保管的固定自签名身份：
+Without a Developer ID, the release maintainer can use a long-lived self-signed identity:
 
 ```bash
 bash Scripts/build_dmg.sh --self-signed \
   --sign-identity "cpsmart Release Signing"
 ```
 
-普通用户不需要创建或安装证书。固定自签名只能帮助不同版本保持代码身份，不能替代 Developer ID、公证或 Gatekeeper 信任。证书的创建、加密备份、协作者导入和跨版本权限验证见 [`docs/SELF_SIGNED_RELEASE.md`](docs/SELF_SIGNED_RELEASE.md)。
+Users do not need to create or install a certificate. A consistent self-signed identity can preserve the app's code identity across versions, but it does not replace Developer ID signing, notarization, or Gatekeeper trust. See [self-signed release instructions](docs/SELF_SIGNED_RELEASE.md) for creating and backing up the certificate, importing it for collaborators, and checking permissions across versions.
 
-正式签名和公证包：
+For a Developer ID signed and notarized release:
 
 ```bash
 bash Scripts/build_dmg.sh --release \
-  --sign-identity "Developer ID Application: <名称> (<Team ID>)" \
+  --sign-identity "Developer ID Application: <name> (<Team ID>)" \
   --notary-profile "cpsmart-notary"
 ```
 
-Developer ID 正式模式会拒绝临时签名，并使用 `notarytool` 提交 DMG、等待结果和装订公证票据。固定自签名模式不会提交公证。任何签名证书、私钥、`.p12` 和公证凭据都不能提交到仓库。
+Formal Developer ID mode rejects ad hoc signing. It submits the DMG with `notarytool`, waits for the result, and staples the notarization ticket. Self-signed mode does not submit for notarization. Never commit signing certificates, private keys, `.p12` files, or notarization credentials.
 
-## 发布流程
+## Release process
 
-1. 更新 `VERSION`、`BUILD_NUMBER` 和 `CHANGELOG.md`。
-2. 运行编译和测试。
-3. 构建并验证正式 DMG。
-4. 提交发布改动并创建带说明的 Tag，例如 `v1.9.0`。
-5. 推送分支和 Tag，在 GitHub 创建正式 Release（不要标记为 Pre-release）。
-6. 上传名称形如 `cpsmart-<版本>-universal.dmg` 的 DMG，粘贴对应版本的更新日志和本页安装说明。内置更新器会读取版本 Tag 并优先选择这个 Universal DMG。
+1. Update `VERSION`, `BUILD_NUMBER`, and the [changelog](CHANGELOG.md).
+2. Build and run the tests.
+3. Build and validate the release DMG.
+4. Commit the release changes and create a descriptive tag, for example `v1.9.0`.
+5. Push the branch and tag, then create a stable GitHub Release (not a prerelease).
+6. Upload a DMG named `cpsmart-<version>-universal.dmg` and include the corresponding changelog and installation instructions from this page. The built-in updater reads the version tag and prefers this Universal DMG.
 
-## 参与贡献
+## Contribute
 
-Fork、分支、测试和 Pull Request 说明见 [CONTRIBUTING.md](CONTRIBUTING.md)。GitHub 使用 Pull Request（PR）；Merge Request（MR）是 GitLab 的称呼。
+For forking, branching, testing, and pull requests, see [CONTRIBUTING.md](CONTRIBUTING.md). GitHub calls these Pull Requests (PRs); Merge Request (MR) is GitLab's term.
 
-## 隐私说明
+## Privacy
 
-剪贴板历史可能包含隐私信息。cpsmart 会跳过带标准敏感标记的内容，但并非所有应用都会正确设置这些标记。处理敏感数据时，请暂停记录并定期清空历史。
+Clipboard history can contain sensitive information. cpsmart skips content with standard sensitive markers, but some apps do not set those markers correctly. Pause recording while handling sensitive data, and clear history regularly.
 
-cpsmart 的剪贴板记录始终只保存在本机。启用“自动检查更新”时，应用至多每天向 GitHub 发送一次普通 HTTPS 请求来读取最新正式版 Tag；请求不包含剪贴板内容。可从菜单栏关闭自动检查。
+Clipboard history always stays on your Mac. When automatic update checks are enabled, cpsmart checks GitHub for the latest stable release tag at most once a day. Update-check requests contain no clipboard content. You can disable automatic checks from the menu bar.

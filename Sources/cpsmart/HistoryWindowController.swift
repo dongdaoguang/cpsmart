@@ -21,9 +21,9 @@ enum AppearanceMode: String, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .system: return "跟随系统"
-        case .light: return "浅色"
-        case .dark: return "深色"
+        case .system: return L10n.tr("跟随系统")
+        case .light: return L10n.tr("浅色")
+        case .dark: return L10n.tr("深色")
         }
     }
 
@@ -138,7 +138,7 @@ final class HistoryWindowController: NSWindowController,
             backing: .buffered,
             defer: false
         )
-        panel.title = "cpsmart 剪贴板历史"
+        panel.title = L10n.tr("cpsmart 剪贴板历史")
         panel.isReleasedWhenClosed = false
         panel.isOpaque = false
         panel.backgroundColor = .clear
@@ -219,6 +219,25 @@ final class HistoryWindowController: NSWindowController,
         reloadCollection(notify: false)
     }
 
+    func refreshLocalization() {
+        window?.title = L10n.tr("cpsmart 剪贴板历史")
+        if let selectedPinboardID,
+           let board = pinboards.first(where: { $0.id == selectedPinboardID }) {
+            searchField.placeholderString = L10n.format("在“{0}”中搜索", [board.name])
+        } else {
+            searchField.placeholderString = L10n.tr("搜索剪贴板历史")
+        }
+        for (index, title) in ["全部", "文本", "图片", "文件"].enumerated() {
+            filterControl.setLabel(L10n.tr(title), forSegment: index)
+        }
+        favoriteButton.image = NSImage(
+            systemSymbolName: "star",
+            accessibilityDescription: L10n.tr("收藏到收藏板")
+        )
+        favoriteButton.toolTip = L10n.tr("收藏到收藏板")
+        applyAppearanceMode()
+    }
+
     func show(
         entries: [ClipboardEntry],
         pinboards: [Pinboard] = []
@@ -251,7 +270,7 @@ final class HistoryWindowController: NSWindowController,
         allEntries = entries
         filterState.reset()
         searchField.stringValue = ""
-        searchField.placeholderString = "搜索剪贴板历史"
+        searchField.placeholderString = L10n.tr("搜索剪贴板历史")
         filterControl.selectedSegment = 0
         selectionState.reset()
         rebuildPinboardTabs()
@@ -311,11 +330,11 @@ final class HistoryWindowController: NSWindowController,
         let wasShowingPinboard = !pinboardSourceState.isHistory
         if let board = pinboardSourceState.reconcile(with: pinboards) {
             allEntries = board.entries
-            searchField.placeholderString = "在“\(board.name)”中搜索"
+            searchField.placeholderString = L10n.format("在“{0}”中搜索", [board.name])
             refilter(selectingID: selectedID, fallbackIndex: selectedIndex)
         } else if wasShowingPinboard {
             allEntries = historyEntries
-            searchField.placeholderString = "搜索剪贴板历史"
+            searchField.placeholderString = L10n.tr("搜索剪贴板历史")
             refilter(fallbackIndex: 0)
         }
         rebuildPinboardTabs()
@@ -364,12 +383,12 @@ final class HistoryWindowController: NSWindowController,
         countLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
 
         searchField.translatesAutoresizingMaskIntoConstraints = false
-        searchField.placeholderString = "搜索剪贴板历史"
+        searchField.placeholderString = L10n.tr("搜索剪贴板历史")
         searchField.font = .systemFont(ofSize: 12)
         searchField.delegate = self
 
         filterControl = NSSegmentedControl(
-            labels: ["全部", "文本", "图片", "文件"],
+            labels: [L10n.tr("全部"), L10n.tr("文本"), L10n.tr("图片"), L10n.tr("文件")],
             trackingMode: .selectOne,
             target: self,
             action: #selector(filterChanged(_:))
@@ -381,14 +400,14 @@ final class HistoryWindowController: NSWindowController,
         favoriteButton.translatesAutoresizingMaskIntoConstraints = false
         favoriteButton.image = NSImage(
             systemSymbolName: "star",
-            accessibilityDescription: "收藏到收藏板"
+            accessibilityDescription: L10n.tr("收藏到收藏板")
         )
         favoriteButton.imagePosition = .imageOnly
         favoriteButton.bezelStyle = .roundRect
         favoriteButton.controlSize = .small
         favoriteButton.target = self
         favoriteButton.action = #selector(showFavoriteMenu(_:))
-        favoriteButton.toolTip = "收藏到收藏板"
+        favoriteButton.toolTip = L10n.tr("收藏到收藏板")
 
         statusLabel.font = .systemFont(ofSize: 10.5, weight: .medium)
         statusLabel.alignment = .right
@@ -582,12 +601,12 @@ final class HistoryWindowController: NSWindowController,
         }
 
         let historyButton = makeBoardButton(
-            title: "最近",
+            title: L10n.tr("最近"),
             color: nil,
             isSelected: selectedPinboardID == nil,
             action: #selector(selectHistoryTab(_:))
         )
-        historyButton.toolTip = "最近复制的剪贴板历史 · ⌘⌥1 · ⌃Tab 循环切换"
+        historyButton.toolTip = L10n.tr("最近复制的剪贴板历史 · ⌘⌥1 · ⌃Tab 循环切换")
         boardStackView.addArrangedSubview(historyButton)
 
         for (index, board) in pinboards.enumerated() {
@@ -599,7 +618,7 @@ final class HistoryWindowController: NSWindowController,
             )
             button.identifier = NSUserInterfaceItemIdentifier(board.id.uuidString)
             let shortcutHint = index < 8 ? " · ⌘⌥\(index + 2)" : ""
-            button.toolTip = "打开“\(board.name)”\(shortcutHint)；右键可重命名、改色或删除"
+            button.toolTip = L10n.format("打开“{0}”{1}；右键可重命名、改色或删除", [board.name, shortcutHint])
             button.menu = pinboardInteractionCoordinator.makeContextMenu(for: board)
             button.dropHighlightColor = palette.pinboardColor(board.color)
             button.onAcceptHistoryEntry = { [weak self] entryID in
@@ -616,9 +635,9 @@ final class HistoryWindowController: NSWindowController,
             isSelected: false,
             action: #selector(createPinboardFromTab(_:))
         )
-        addButton.image = NSImage(systemSymbolName: "plus", accessibilityDescription: "新建收藏板")
+        addButton.image = NSImage(systemSymbolName: "plus", accessibilityDescription: L10n.tr("新建收藏板"))
         addButton.imagePosition = .imageOnly
-        addButton.toolTip = "新建收藏板"
+        addButton.toolTip = L10n.tr("新建收藏板")
         boardStackView.addArrangedSubview(addButton)
     }
 
@@ -661,8 +680,8 @@ final class HistoryWindowController: NSWindowController,
         let alreadyContainsEntry = board.entries.contains { $0.payload == entry.payload }
         onAddToPinboard?([entry], boardID)
         statusLabel.stringValue = alreadyContainsEntry
-            ? "这项内容已在“\(board.name)”中"
-            : "已收藏到“\(board.name)”"
+            ? L10n.format("这项内容已在“{0}”中", [board.name])
+            : L10n.format("已收藏到“{0}”", [board.name])
         statusLabel.textColor = palette.accent
     }
 
@@ -683,11 +702,11 @@ final class HistoryWindowController: NSWindowController,
         if let pinboardID,
            let board = pinboardSourceState.selectPinboard(pinboardID, from: pinboards) {
             allEntries = board.entries
-            searchField.placeholderString = "在“\(board.name)”中搜索"
+            searchField.placeholderString = L10n.format("在“{0}”中搜索", [board.name])
         } else {
             pinboardSourceState.selectHistory()
             allEntries = historyEntries
-            searchField.placeholderString = "搜索剪贴板历史"
+            searchField.placeholderString = L10n.tr("搜索剪贴板历史")
         }
         filterState.reset()
         searchField.stringValue = ""
@@ -712,7 +731,7 @@ final class HistoryWindowController: NSWindowController,
             } else {
                 let pinboardIndex = index - 1
                 guard pinboards.indices.contains(pinboardIndex) else {
-                    statusLabel.stringValue = "还没有第 \(index) 个收藏板"
+                    statusLabel.stringValue = L10n.format("还没有第 {0} 个收藏板", [index])
                     statusLabel.textColor = .systemOrange
                     NSSound.beep()
                     return true
@@ -836,21 +855,21 @@ final class HistoryWindowController: NSWindowController,
     private func updateHeaderState() {
         let isFiltering = filterState.isFiltering
         countLabel.stringValue = isFiltering
-            ? "匹配 \(visibleEntries.count) / \(allEntries.count)"
-            : "\(allEntries.count) 项"
+            ? L10n.format("匹配 {0} / {1}", [visibleEntries.count, allEntries.count])
+            : L10n.format("{0} 项", [allEntries.count])
 
         // 按钮常驻避免布局跳动；收藏板视图下没有可收藏的对象，置灰即可。
         favoriteButton.isEnabled = selectedPinboardID == nil && !visibleEntries.isEmpty
 
         if allEntries.isEmpty {
             emptyLabel.stringValue = selectedPinboardID == nil
-                ? "还没有记录 · 先复制一些文本、图片或文件"
-                : "这个收藏板还是空的 · 回到“最近”选择内容并收藏"
+                ? L10n.tr("还没有记录 · 先复制一些文本、图片或文件")
+                : L10n.tr("这个收藏板还是空的 · 回到“最近”选择内容并收藏")
             emptyLabel.isHidden = false
         } else if visibleEntries.isEmpty {
             emptyLabel.stringValue = query.isEmpty
-                ? "该类型下没有记录"
-                : "没有匹配「\(query)」的记录"
+                ? L10n.tr("该类型下没有记录")
+                : L10n.format("没有匹配「{0}」的记录", [query])
             emptyLabel.isHidden = false
         } else {
             emptyLabel.isHidden = true
@@ -867,14 +886,14 @@ final class HistoryWindowController: NSWindowController,
         let delete = shortcutStore.displayString(for: .deleteSelection)
         let isFiltering = filterState.isFiltering
         if selectedPinboardID != nil, isFiltering, !isSearchFieldFocused {
-            hintLabel.stringValue = "当前正在筛选 · 清除搜索并选择“全部”后可拖动调整顺序"
+            hintLabel.stringValue = L10n.tr("当前正在筛选 · 清除搜索并选择“全部”后可拖动调整顺序")
         } else if isSearchFieldFocused {
-            let closeHint = query.isEmpty ? "\(close) 关闭" : "\(close) 清除搜索"
-            hintLabel.stringValue = "输入筛选 · \(search) 返回浏览 · \(preview) 预览 · \(paste) 粘贴 · \(closeHint)"
+            let closeHint = query.isEmpty ? L10n.format("{0} 关闭", [close]) : L10n.format("{0} 清除搜索", [close])
+            hintLabel.stringValue = L10n.format("输入筛选 · {0} 返回浏览 · {1} 预览 · {2} 粘贴 · {3}", [search, preview, paste, closeHint])
         } else if selectedPinboardID != nil {
-            hintLabel.stringValue = "⇧点选多选 · ⌘A 全选 · \(preview) 预览 · \(delete) 移出 · \(paste) 粘贴 · \(close) 关闭"
+            hintLabel.stringValue = L10n.format("⇧点选多选 · ⌘A 全选 · {0} 预览 · {1} 移出 · {2} 粘贴 · {3} 关闭", [preview, delete, paste, close])
         } else {
-            hintLabel.stringValue = "⇧点选多选 · ⌘A 全选 · \(preview) 预览 · \(favorite) 收藏 · \(paste) 粘贴 · \(close) 关闭"
+            hintLabel.stringValue = L10n.format("⇧点选多选 · ⌘A 全选 · {0} 预览 · {1} 收藏 · {2} 粘贴 · {3} 关闭", [preview, favorite, paste, close])
         }
     }
 
@@ -939,7 +958,7 @@ final class HistoryWindowController: NSWindowController,
         // 而且面板尺寸异步重算会产生明显闪动。会话保持开启，
         // 继续按方向键切到文本/图片时会恢复预览。
         previewSessionState.recordUnavailable()
-        statusLabel.stringValue = "文件没有预览 · 双击直接粘贴"
+        statusLabel.stringValue = L10n.tr("文件没有预览 · 双击直接粘贴")
         statusLabel.textColor = palette.textSecondary
     }
 
@@ -1167,9 +1186,9 @@ final class HistoryWindowController: NSWindowController,
     private func updateSelectionStatus() {
         let selectedCount = selectedEntryIDs.count
         if selectedCount > 1 {
-            statusLabel.stringValue = "已选择 \(selectedCount) 项 · 预览与粘贴使用当前卡片"
+            statusLabel.stringValue = L10n.format("已选择 {0} 项 · 预览与粘贴使用当前卡片", [selectedCount])
         } else if selectedCount == 1 {
-            statusLabel.stringValue = "已选择并复制 \(selectedIndex + 1) / \(visibleEntries.count) · 双击可粘贴"
+            statusLabel.stringValue = L10n.format("已选择并复制 {0} / {1} · 双击可粘贴", [selectedIndex + 1, visibleEntries.count])
         } else {
             statusLabel.stringValue = ""
         }
@@ -1185,12 +1204,12 @@ final class HistoryWindowController: NSWindowController,
         case .started:
             dismiss(restorePreviousApplication: false)
         case .permissionRequired:
-            statusLabel.stringValue = "请在“系统设置 → 隐私与安全性 → 辅助功能”中允许 cpsmart"
+            statusLabel.stringValue = L10n.tr("请在“系统设置 → 隐私与安全性 → 辅助功能”中允许 cpsmart")
             statusLabel.textColor = .systemOrange
             NSSound.beep()
             showAccessibilityPermissionHelp()
         case .targetUnavailable:
-            statusLabel.stringValue = "无法找到刚才使用的应用，请关闭浮窗后重试"
+            statusLabel.stringValue = L10n.tr("无法找到刚才使用的应用，请关闭浮窗后重试")
             statusLabel.textColor = .systemOrange
             NSSound.beep()
         }
@@ -1198,31 +1217,21 @@ final class HistoryWindowController: NSWindowController,
 
     private func showAccessibilityPermissionHelp() {
         let alert = NSAlert()
-        alert.messageText = "自动粘贴需要“辅助功能”权限"
-        alert.informativeText = """
-        更新或迁移签名后，macOS 可能仍保留旧版本的权限身份。修复会清除 cpsmart 的旧记录、打开正确的系统设置页面，然后自动退出当前应用。
-
-        应用退出后：
-
-        1. 点击列表下方的“+”。
-        2. 选择 /Applications/cpsmart.app 并打开右侧开关。
-        3. 从“应用程序”重新启动 cpsmart。
-
-        macOS 不允许应用替你完成最后的授权开关。
-        """
+        alert.messageText = L10n.tr("自动粘贴需要“辅助功能”权限")
+        alert.informativeText = L10n.tr("accessibility.repairInstructions")
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "清除旧记录、打开设置并退出")
-        alert.addButton(withTitle: "仅打开设置")
-        alert.addButton(withTitle: "稍后")
+        alert.addButton(withTitle: L10n.tr("清除旧记录、打开设置并退出"))
+        alert.addButton(withTitle: L10n.tr("仅打开设置"))
+        alert.addButton(withTitle: L10n.tr("稍后"))
 
         switch alert.runModal() {
         case .alertFirstButtonReturn:
             if !AccessibilityPermissionSupport.resetCurrentApplication() {
                 let failureAlert = NSAlert()
-                failureAlert.messageText = "无法自动重置旧权限"
-                failureAlert.informativeText = "请在接下来打开的辅助功能设置中手动删除旧 cpsmart，再点击“+”添加 /Applications/cpsmart.app。"
+                failureAlert.messageText = L10n.tr("无法自动重置旧权限")
+                failureAlert.informativeText = L10n.tr("请在接下来打开的辅助功能设置中手动删除旧 cpsmart，再点击“+”添加 /Applications/cpsmart.app。")
                 failureAlert.alertStyle = .warning
-                failureAlert.addButton(withTitle: "继续")
+                failureAlert.addButton(withTitle: L10n.tr("继续"))
                 failureAlert.runModal()
             }
             AccessibilityPermissionSupport.openSettings()
@@ -1245,12 +1254,12 @@ final class HistoryWindowController: NSWindowController,
         let isRemovingFromPinboard = selectedPinboardID != nil
         let alert = NSAlert()
         alert.messageText = isRemovingFromPinboard
-            ? "从收藏板移出所选的 \(entries.count) 项？"
-            : "删除所选的 \(entries.count) 条历史记录？"
-        alert.informativeText = "删除后可按 ⌘Z 恢复最近一次操作。"
+            ? L10n.format("从收藏板移出所选的 {0} 项？", [entries.count])
+            : L10n.format("删除所选的 {0} 条历史记录？", [entries.count])
+        alert.informativeText = L10n.tr("删除后可按 ⌘Z 恢复最近一次操作。")
         alert.alertStyle = .warning
-        alert.addButton(withTitle: isRemovingFromPinboard ? "移出" : "删除")
-        alert.addButton(withTitle: "取消")
+        alert.addButton(withTitle: isRemovingFromPinboard ? L10n.tr("移出") : L10n.tr("删除"))
+        alert.addButton(withTitle: L10n.tr("取消"))
         alert.beginSheetModal(for: window) { [weak self] response in
             guard response == .alertFirstButtonReturn else { return }
             self?.performDelete(entries)
@@ -1259,17 +1268,17 @@ final class HistoryWindowController: NSWindowController,
 
     private func performDelete(_ entries: [ClipboardEntry]) {
         let removedCount: Int
-        let actionName: String
+        let statusKey: String
         if let selectedPinboardID {
             removedCount = onRemoveFromPinboard?(entries, selectedPinboardID) ?? 0
-            actionName = "移出"
+            statusKey = "已从收藏板移出 {0} 项 · ⌘Z 撤销"
         } else {
             removedCount = onDelete?(entries) ?? 0
-            actionName = "删除"
+            statusKey = "已删除 {0} 项 · ⌘Z 撤销"
         }
         guard removedCount > 0 else { return }
         hasPendingDeletionUndo = true
-        statusLabel.stringValue = "已\(actionName) \(removedCount) 项 · ⌘Z 撤销"
+        statusLabel.stringValue = L10n.format(statusKey, [removedCount])
         statusLabel.textColor = palette.accent
     }
 
@@ -1278,13 +1287,13 @@ final class HistoryWindowController: NSWindowController,
         let restoredCount = onUndoDelete?() ?? 0
         guard restoredCount > 0 else {
             hasPendingDeletionUndo = false
-            statusLabel.stringValue = "最近删除已无法恢复"
+            statusLabel.stringValue = L10n.tr("最近删除已无法恢复")
             statusLabel.textColor = .systemOrange
             NSSound.beep()
             return
         }
         hasPendingDeletionUndo = false
-        statusLabel.stringValue = "已恢复 \(restoredCount) 项"
+        statusLabel.stringValue = L10n.format("已恢复 {0} 项", [restoredCount])
         statusLabel.textColor = palette.accent
     }
 
@@ -1299,7 +1308,7 @@ final class HistoryWindowController: NSWindowController,
             return
         }
         guard selectedEntryIDs.count == 1 else {
-            statusLabel.stringValue = "批量置顶暂不支持，请只选择一项"
+            statusLabel.stringValue = L10n.tr("批量置顶暂不支持，请只选择一项")
             statusLabel.textColor = .systemOrange
             NSSound.beep()
             return
@@ -1871,7 +1880,7 @@ final class HistoryWindowController: NSWindowController,
     private func beginCardDrag(entry: ClipboardEntry, event: NSEvent, sourceView: NSView) {
         if selectedPinboardID != nil, !filterState.allowsPinboardReordering {
             NSSound.beep()
-            statusLabel.stringValue = "清除搜索并选择“全部”后可调整收藏顺序"
+            statusLabel.stringValue = L10n.tr("清除搜索并选择“全部”后可调整收藏顺序")
             statusLabel.textColor = .systemOrange
             return
         }
@@ -1883,8 +1892,8 @@ final class HistoryWindowController: NSWindowController,
         ) else {
             NSSound.beep()
             statusLabel.stringValue = selectedEntryIDs.count > 1
-                ? "暂不支持批量拖动，请只选择一项"
-                : "请先选择要拖动的项目"
+                ? L10n.tr("暂不支持批量拖动，请只选择一项")
+                : L10n.tr("请先选择要拖动的项目")
             statusLabel.textColor = .systemOrange
             return
         }

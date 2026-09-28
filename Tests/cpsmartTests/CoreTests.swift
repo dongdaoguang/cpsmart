@@ -33,6 +33,7 @@ final class CoreTests: XCTestCase {
         }
     }
     func testUpdateSupport() throws { try CoreTestSupport.runUpdateSupport() }
+    func testLocalization() throws { try CoreTestSupport.runLocalization() }
     func testSearchFiltering() throws { try CoreTestSupport.runSearchFiltering() }
     func testThumbnailProvider() throws { try CoreTestSupport.runThumbnailProvider() }
     func testShortcutDefaultsAndValidation() throws {

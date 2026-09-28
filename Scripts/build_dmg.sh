@@ -130,6 +130,11 @@ ARM_BINARY="$(build_architecture arm64 | tail -n 1)"
 lipo -create "$X86_BINARY" "$ARM_BINARY" -output "$MACOS_DIR/cpsmart"
 chmod 755 "$MACOS_DIR/cpsmart"
 cp "$PROJECT_DIR/Resources/Info.plist" "$CONTENTS_DIR/Info.plist"
+cp -R "$PROJECT_DIR/Resources/en.lproj" "$PROJECT_DIR/Resources/zh-Hans.lproj" "$RESOURCES_DIR/"
+for language in en zh-Hans; do
+    cp "$PROJECT_DIR/Sources/cpsmart/Resources/$language.lproj/Localizable.strings" \
+        "$RESOURCES_DIR/$language.lproj/Localizable.strings"
+done
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$CONTENTS_DIR/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$CONTENTS_DIR/Info.plist"
 
@@ -179,7 +184,7 @@ ln -s /Applications "$STAGING_DIR/Applications"
 
 rm -f "$DMG_PATH"
 hdiutil create \
-    -volname "cpsmart 安装" \
+    -volname "cpsmart Installer" \
     -srcfolder "$STAGING_DIR" \
     -format UDZO \
     -ov \

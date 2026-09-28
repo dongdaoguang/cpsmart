@@ -4,6 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "cpsmart",
+    defaultLocalization: "en",
     platforms: [
         .macOS(.v13)
     ],
@@ -13,7 +14,8 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "cpsmart",
-            path: "Sources/cpsmart"
+            path: "Sources/cpsmart",
+            resources: [.process("Resources")]
         ),
         .testTarget(
             name: "cpsmartTests",

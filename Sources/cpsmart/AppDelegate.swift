@@ -38,9 +38,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var pauseMenuItem: NSMenuItem!
     private var loginMenuItem: NSMenuItem!
     private var appearanceMenuItem: NSMenuItem!
+    private var languageMenuItem: NSMenuItem!
     private var checkForUpdatesMenuItem: NSMenuItem!
     private var automaticUpdatesMenuItem: NSMenuItem!
     private var pendingDeletionUndo: PendingDeletionUndo?
+    private var pendingLanguageRefresh = false
 
     private var demoPinboardStore: PinboardStore?
     private var demoPinboardFileURL: URL?
@@ -445,12 +447,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func configureStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        rebuildStatusMenu()
+    }
+
+    private func rebuildStatusMenu() {
         if let button = statusItem.button {
             button.image = NSImage(
                 systemSymbolName: "doc.on.clipboard",
                 accessibilityDescription: "cpsmart"
             )
-            button.toolTip = "cpsmart 剪贴板历史"
+            button.toolTip = L10n.tr("cpsmart 剪贴板历史")
         }
 
         let menu = NSMenu()
@@ -464,27 +470,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
 
         pauseMenuItem = NSMenuItem(
-            title: "暂停记录",
+            title: L10n.tr("暂停记录"),
             action: #selector(togglePause),
             keyEquivalent: ""
         )
         menu.addItem(pauseMenuItem)
 
         loginMenuItem = NSMenuItem(
-            title: "登录时启动",
+            title: L10n.tr("登录时启动"),
             action: #selector(toggleLaunchAtLogin),
             keyEquivalent: ""
         )
         menu.addItem(loginMenuItem)
 
         menu.addItem(NSMenuItem(
-            title: "快捷键设置…",
+            title: L10n.tr("快捷键设置…"),
             action: #selector(showShortcutSettings),
             keyEquivalent: ""
         ))
 
         // 外观：跟随系统 / 浅色 / 深色
-        appearanceMenuItem = NSMenuItem(title: "外观", action: nil, keyEquivalent: "")
+        appearanceMenuItem = NSMenuItem(title: L10n.tr("外观"), action: nil, keyEquivalent: "")
         let appearanceSubmenu = NSMenu()
         for (index, mode) in AppearanceMode.allCases.enumerated() {
             let item = NSMenuItem(
@@ -500,14 +506,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         appearanceMenuItem.submenu = appearanceSubmenu
         menu.addItem(appearanceMenuItem)
 
+        languageMenuItem = NSMenuItem(title: L10n.tr("语言"), action: nil, keyEquivalent: "")
+        let languageSubmenu = NSMenu()
+        for (index, language) in AppLanguage.allCases.enumerated() {
+            let item = NSMenuItem(
+                title: language.displayName,
+                action: #selector(selectLanguage(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.tag = index
+            languageSubmenu.addItem(item)
+        }
+        languageSubmenu.delegate = self
+        languageMenuItem.submenu = languageSubmenu
+        menu.addItem(languageMenuItem)
+
         menu.addItem(NSMenuItem(
-            title: "清空历史…",
+            title: L10n.tr("清空历史…"),
             action: #selector(clearHistory),
             keyEquivalent: ""
         ))
         // 按住 Option 出现：连置顶记录一起清空
         let clearAllItem = NSMenuItem(
-            title: "清空全部历史（含置顶）…",
+            title: L10n.tr("清空全部历史（含置顶）…"),
             action: #selector(clearAllHistory),
             keyEquivalent: ""
         )
@@ -524,7 +546,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(checkForUpdatesMenuItem)
 
         automaticUpdatesMenuItem = NSMenuItem(
-            title: "自动检查更新",
+            title: L10n.tr("自动检查更新"),
             action: #selector(toggleAutomaticUpdates),
             keyEquivalent: ""
         )
@@ -532,12 +554,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
 
         menu.addItem(NSMenuItem(
-            title: "关于 cpsmart",
+            title: L10n.tr("关于 cpsmart"),
             action: #selector(showAbout),
             keyEquivalent: ""
         ))
         menu.addItem(NSMenuItem(
-            title: "退出 cpsmart",
+            title: L10n.tr("退出 cpsmart"),
             action: #selector(quit),
             keyEquivalent: "q"
         ))
@@ -557,10 +579,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             return
         }
+        if menu === languageMenuItem.submenu {
+            for item in menu.items {
+                item.state = AppLanguage.allCases[item.tag] == AppLanguage.selected()
+                    ? .on
+                    : .off
+            }
+            return
+        }
         openHistoryMenuItem.title = openHistoryMenuTitle
         pauseMenuItem.state = monitor.isPaused ? .on : .off
         loginMenuItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
         refreshUpdateMenuItems()
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        guard menu === statusItem.menu, pendingLanguageRefresh else { return }
+        pendingLanguageRefresh = false
+        DispatchQueue.main.async { [weak self] in
+            self?.applyLanguageChange()
+        }
     }
 
     private func refreshUpdateMenuItems() {
@@ -577,6 +615,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         shortcutSettingsWindow.applyAppearanceMode()
     }
 
+    @objc private func selectLanguage(_ sender: NSMenuItem) {
+        guard AppLanguage.allCases.indices.contains(sender.tag) else { return }
+        let language = AppLanguage.allCases[sender.tag]
+        guard language != AppLanguage.selected() else { return }
+        AppLanguage.select(language)
+        pendingLanguageRefresh = true
+    }
+
+    private func applyLanguageChange() {
+        rebuildStatusMenu()
+        historyWindow.refreshLocalization()
+        aboutWindow.refreshLocalization()
+
+        let oldSettings = shortcutSettingsWindow
+        let wasVisible = oldSettings.window?.isVisible == true
+        let previousFrame = oldSettings.window?.frame
+        oldSettings.prepareForLanguageChange()
+        shortcutSettingsWindow = ShortcutSettingsWindowController(shortcutStore: shortcutStore)
+        configureShortcutSettings()
+        if wasVisible {
+            shortcutSettingsWindow.show()
+            if let previousFrame {
+                shortcutSettingsWindow.window?.setFrame(previousFrame, display: true)
+            }
+        }
+    }
+
     private func showHistory() {
         historyWindow.show(entries: store.entries, pinboards: activePinboardStore.boards)
     }
@@ -590,7 +655,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private var openHistoryMenuTitle: String {
-        "打开剪贴板历史（\(shortcutStore.displayString(for: .toggleHistory))）"
+        L10n.format("打开剪贴板历史（{0}）", [shortcutStore.displayString(for: .toggleHistory)])
     }
 
     private func registerInitialGlobalHotKey() {
@@ -598,8 +663,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         hotKey = makeGlobalHotKey(for: gesture)
         if hotKey == nil {
             showAlert(
-                title: "快捷键注册失败",
-                message: "\(gesture.displayString) 可能已被系统或其他应用占用。你仍可从菜单栏打开 cpsmart，并在“快捷键设置”中更换。"
+                title: L10n.tr("快捷键注册失败"),
+                message: L10n.format("{0} 可能已被系统或其他应用占用。你仍可从菜单栏打开 cpsmart，并在“快捷键设置”中更换。", [gesture.displayString])
             )
         }
     }
@@ -621,10 +686,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if action == .toggleHistory, shouldRegisterGlobalHotKey {
             if hotKey?.gesture != gesture {
                 guard let candidate = makeGlobalHotKey(for: gesture) else {
-                    return "无法使用 \(gesture.displayString)：该快捷键可能已被系统或其他应用占用。原快捷键仍然有效。"
+                    return L10n.format("无法使用 {0}：该快捷键可能已被系统或其他应用占用。原快捷键仍然有效。", [gesture.displayString])
                 }
                 guard shortcutStore.set(gesture, for: action) == nil else {
-                    return "无法保存该快捷键。"
+                    return L10n.tr("无法保存该快捷键。")
                 }
                 hotKey = candidate
                 openHistoryMenuItem?.title = openHistoryMenuTitle
@@ -643,7 +708,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let defaultGlobal = ShortcutDefaults.bindings[.toggleHistory]!.first!
         if shouldRegisterGlobalHotKey, hotKey?.gesture != defaultGlobal {
             guard let candidate = makeGlobalHotKey(for: defaultGlobal) else {
-                return "无法恢复默认：\(defaultGlobal.displayString) 可能已被系统或其他应用占用。当前设置保持不变。"
+                return L10n.format("无法恢复默认：{0} 可能已被系统或其他应用占用。当前设置保持不变。", [defaultGlobal.displayString])
             }
             shortcutStore.resetToDefaults()
             hotKey = candidate
@@ -656,16 +721,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func attemptShortcutReset(action: ShortcutActionID) -> String? {
         if let issue = shortcutStore.validateReset(for: action) {
-            return "无法恢复默认：\(issue.message)"
+            return L10n.format("无法恢复默认：{0}", [issue.message])
         }
 
         if action == .toggleHistory, shouldRegisterGlobalHotKey {
             let defaultGesture = shortcutStore.defaultBindings(for: action).first!
             guard let candidate = makeGlobalHotKey(for: defaultGesture) else {
-                return "无法恢复默认：\(defaultGesture.displayString) 可能已被系统或其他应用占用。当前设置保持不变。"
+                return L10n.format("无法恢复默认：{0} 可能已被系统或其他应用占用。当前设置保持不变。", [defaultGesture.displayString])
             }
             guard shortcutStore.resetToDefault(action) == nil else {
-                return "无法恢复该快捷键。"
+                return L10n.tr("无法恢复该快捷键。")
             }
             hotKey = candidate
         } else if let issue = shortcutStore.resetToDefault(action) {
@@ -686,7 +751,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             with: conflictingAction,
             requestedGesture: requestedGesture
         ) {
-            return "无法交换：\(issue.message)"
+            return L10n.format("无法交换：{0}", [issue.message])
         }
 
         let replacementGesture = shortcutStore.primaryBinding(for: action)
@@ -701,7 +766,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         var candidateHotKey: GlobalHotKey?
         if shouldRegisterGlobalHotKey, let newGlobalGesture {
             guard let candidate = makeGlobalHotKey(for: newGlobalGesture) else {
-                return "无法交换：\(newGlobalGesture.displayString) 不能注册为全局快捷键。当前设置保持不变。"
+                return L10n.format("无法交换：{0} 不能注册为全局快捷键。当前设置保持不变。", [newGlobalGesture.displayString])
             }
             candidateHotKey = candidate
         }
@@ -711,7 +776,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             with: conflictingAction,
             requestedGesture: requestedGesture
         ) {
-            return "无法交换：\(issue.message)"
+            return L10n.format("无法交换：{0}", [issue.message])
         }
         if let candidateHotKey { hotKey = candidateHotKey }
         openHistoryMenuItem?.title = openHistoryMenuTitle
@@ -733,7 +798,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard hotKey == nil else { return nil }
         let gesture = shortcutStore.primaryBinding(for: .toggleHistory)
         guard let restored = makeGlobalHotKey(for: gesture) else {
-            return "无法恢复 \(gesture.displayString)：该快捷键可能刚被系统或其他应用占用。请重新录制一个全局快捷键。"
+            return L10n.format("无法恢复 {0}：该快捷键可能刚被系统或其他应用占用。请重新录制一个全局快捷键。", [gesture.displayString])
         }
         hotKey = restored
         return nil
@@ -753,19 +818,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
         } catch {
             showAlert(
-                title: "无法更改登录启动设置",
-                message: "请先把 cpsmart 拖入“应用程序”文件夹，然后重试。\n\n\(error.localizedDescription)"
+                title: L10n.tr("无法更改登录启动设置"),
+                message: L10n.format("请先把 cpsmart 拖入“应用程序”文件夹，然后重试。\n\n{0}", [error.localizedDescription])
             )
         }
     }
 
     @objc private func clearHistory() {
         let alert = NSAlert()
-        alert.messageText = "清空剪贴板历史？"
-        alert.informativeText = "置顶的记录会保留。此操作无法撤销。"
+        alert.messageText = L10n.tr("清空剪贴板历史？")
+        alert.informativeText = L10n.tr("置顶的记录会保留。此操作无法撤销。")
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "清空")
-        alert.addButton(withTitle: "取消")
+        alert.addButton(withTitle: L10n.tr("清空"))
+        alert.addButton(withTitle: L10n.tr("取消"))
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         pendingDeletionUndo = nil
         historyWindow.clearDeletionUndo()
@@ -775,11 +840,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func clearAllHistory() {
         let alert = NSAlert()
-        alert.messageText = "清空全部剪贴板历史（含置顶）？"
-        alert.informativeText = "置顶的记录也会一并删除。此操作无法撤销。"
+        alert.messageText = L10n.tr("清空全部剪贴板历史（含置顶）？")
+        alert.informativeText = L10n.tr("置顶的记录也会一并删除。此操作无法撤销。")
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "全部清空")
-        alert.addButton(withTitle: "取消")
+        alert.addButton(withTitle: L10n.tr("全部清空"))
+        alert.addButton(withTitle: L10n.tr("取消"))
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         pendingDeletionUndo = nil
         historyWindow.clearDeletionUndo()
@@ -809,7 +874,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         alert.messageText = title
         alert.informativeText = message
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "好")
+        alert.addButton(withTitle: L10n.tr("好"))
         alert.runModal()
     }
 }

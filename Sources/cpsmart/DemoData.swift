@@ -8,7 +8,7 @@ enum DemoData {
             ClipboardEntry(
                 payload: .text("git rebase -i HEAD~3"),
                 createdAt: now.addingTimeInterval(-40),
-                sourceAppName: "终端",
+                sourceAppName: L10n.tr("终端"),
                 sourceAppBundleID: "com.apple.Terminal",
                 isPinned: true
             ),
@@ -59,30 +59,25 @@ enum DemoData {
                     pasteboardType: NSPasteboard.PasteboardType.png.rawValue
                 ),
                 createdAt: now.addingTimeInterval(-48 * 60),
-                sourceAppName: "预览",
+                sourceAppName: L10n.tr("预览"),
                 sourceAppBundleID: "com.apple.Preview"
             ),
             ClipboardEntry(
-                payload: .text("剪贴板历史可能包含隐私信息。cpsmart 不联网、不上传历史，并会跳过带标准敏感标记的内容。"),
+                payload: .text(L10n.tr("剪贴板历史可能包含隐私信息。cpsmart 不联网、不上传历史，并会跳过带标准敏感标记的内容。")),
                 createdAt: now.addingTimeInterval(-72 * 60),
-                sourceAppName: "备忘录",
+                sourceAppName: L10n.tr("备忘录"),
                 sourceAppBundleID: "com.apple.Notes"
             ),
             ClipboardEntry(
                 payload: .files(["/Applications/Safari.app"]),
                 createdAt: now.addingTimeInterval(-2 * 3600),
-                sourceAppName: "访达",
+                sourceAppName: L10n.tr("访达"),
                 sourceAppBundleID: "com.apple.finder"
             ),
             ClipboardEntry(
-                payload: .text("""
-                    - [x] 搜索过滤
-                    - [x] 图片缩略图
-                    - [x] 来源应用图标
-                    - [x] 自适应预览
-                    """),
+                payload: .text(L10n.tr("demo.checklist")),
                 createdAt: now.addingTimeInterval(-3 * 3600),
-                sourceAppName: "备忘录",
+                sourceAppName: L10n.tr("备忘录"),
                 sourceAppBundleID: "com.apple.Notes"
             ),
             ClipboardEntry(
@@ -92,7 +87,7 @@ enum DemoData {
                     "/System/Applications/Notes.app"
                 ]),
                 createdAt: now.addingTimeInterval(-5 * 3600),
-                sourceAppName: "访达",
+                sourceAppName: L10n.tr("访达"),
                 sourceAppBundleID: "com.apple.finder"
             )
         ]
@@ -101,7 +96,7 @@ enum DemoData {
     static func makePinboards() -> [Pinboard] {
         [
             Pinboard(
-                name: "常用命令",
+                name: L10n.tr("常用命令"),
                 color: .red,
                 entries: [
                     ClipboardEntry(payload: .text("git status --short --branch")),
@@ -110,11 +105,11 @@ enum DemoData {
                 ]
             ),
             Pinboard(
-                name: "常用回复",
+                name: L10n.tr("常用回复"),
                 color: .blue,
                 entries: [
-                    ClipboardEntry(payload: .text("收到，我确认后尽快回复你。")),
-                    ClipboardEntry(payload: .text("麻烦补充一下复现步骤和系统版本，谢谢。"))
+                    ClipboardEntry(payload: .text(L10n.tr("收到，我确认后尽快回复你。"))),
+                    ClipboardEntry(payload: .text(L10n.tr("麻烦补充一下复现步骤和系统版本，谢谢。")))
                 ]
             )
         ]
