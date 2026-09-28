@@ -14,7 +14,8 @@ if [[ ! -f "$P12_PATH" ]]; then
     exit 2
 fi
 
-LOGIN_KEYCHAIN="$(security login-keychain -d user | tr -d ' \"')"
+LOGIN_KEYCHAIN="$(security login-keychain -d user 2>/dev/null || security login-keychain)"
+LOGIN_KEYCHAIN="$(printf '%s' "$LOGIN_KEYCHAIN" | tr -d ' \"')"
 if [[ -z "$LOGIN_KEYCHAIN" || ! -f "$LOGIN_KEYCHAIN" ]]; then
     echo "Unable to locate the current user's login keychain" >&2
     exit 1
