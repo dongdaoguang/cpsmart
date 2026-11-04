@@ -49,7 +49,10 @@ Cover at least two layouts that the available hardware can form. At least one mu
 - Run Claude Code in two windows of the same terminal app, one on each display. Type a character to confirm focus, then open history and paste a distinctive test string. Use each window as the target and try both Return and a double-click. Check that only the intended input receives the string each time.
 - Leave keyboard focus in one window, move the pointer to the other display without clicking, and open history with the shortcut. The panel should follow the pointer and the paste should go to the window with keyboard focus.
 - With history open, click the other terminal window, then double-click a history card. The last terminal window you clicked should receive the paste.
-- With history open, let the original window close (for example, using a timer in the test window), then press Return. Confirm the panel reports that automatic paste could not finish and the other session receives no text.
+- With history open, let the original window close (for example, using a timer in the test window), then press Return. Confirm the other session receives no text. Check the failure notice in the panel, reopening it if it already handed focus back.
+- Repeat in an empty editor document with a single-line test string. Hold Return, then release it. The string should appear once, with no extra newline. The history panel should be gone when the editor receives keyboard input.
+
+To check delivery on both displays with an installed build, run `bash Scripts/validate_paste_windows.sh /path/to/cpsmart.app`. It uses two windows of an isolated test app and checks which window receives the actual ⌘V for both Return and double-click. The test leaves the system clipboard contents alone. The panel triggers are simulated, so test holding a physical Return key in the editor separately.
 
 ## Mouse and trackpad
 

@@ -6,6 +6,11 @@ This project follows semantic versioning.
 
 ## Unreleased
 
+## 1.12.2 — 2026-11-04
+
+- Fixed a 1.12.1 regression that could stop automatic paste in editors and terminals. When you press Return on a card, cpsmart waits for you to release the key, closes the history panel, and pastes into the original window. This prevents a held Return from inserting a newline during the switch.
+- Double-clicking a card also restores the original window before pasting. If cpsmart cannot identify or refocus that window, the notice now explains which step failed.
+
 ## 1.12.1 — 2026-11-04
 
 - When you press Return or double-click a history card, cpsmart checks which window had keyboard focus. If another window of the same app is active, cpsmart tries to restore the original window. If it cannot confirm focus, it stops and offers manual paste. [#6](https://github.com/dongdaoguang/cpsmart/issues/6)

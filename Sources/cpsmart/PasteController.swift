@@ -2,10 +2,13 @@ import AppKit
 import ApplicationServices
 import Carbon.HIToolbox
 
-enum PasteResult {
+enum PasteResult: String {
     case posted
     case permissionRequired
-    case targetUnavailable
+    case targetUnavailable = "paste.targetUnavailable"
+    case focusNotRestored = "paste.focusNotRestored"
+    case clipboardChanged = "paste.clipboardChanged"
+    case eventUnavailable = "paste.eventUnavailable"
 }
 
 /// 浮窗取得焦点前记录实际接收键盘输入的窗口。
@@ -19,20 +22,34 @@ struct PasteTarget {
         axApplication = AXUIElementCreateApplication(application.processIdentifier)
         // 限制同步 AX 调用的等待时间，避免未响应的应用卡住浮窗。
         AXUIElementSetMessagingTimeout(axApplication, 0.15)
-        window = AXIsProcessTrusted() ? Self.focusedWindow(in: axApplication) : nil
+        window = AXIsProcessTrusted()
+            ? Self.focusedWindow(in: axApplication, pid: application.processIdentifier) : nil
         if let window {
             AXUIElementSetMessagingTimeout(window, 0.15)
         }
     }
 
-    private static func focusedWindow(in application: AXUIElement) -> AXUIElement? {
+    private static func element(_ attribute: String, of element: AXUIElement) -> AXUIElement? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(
-            application, kAXFocusedWindowAttribute as CFString, &value
+            element, attribute as CFString, &value
         ) == .success, let value, CFGetTypeID(value) == AXUIElementGetTypeID() else {
             return nil
         }
         return (value as! AXUIElement)
+    }
+
+    private static func focusedWindow(in application: AXUIElement, pid: pid_t) -> AXUIElement? {
+        if let window = element(kAXFocusedWindowAttribute, of: application) {
+            return window
+        }
+        // Some apps expose the focused input's window even when AXFocusedWindow is absent.
+        guard let input = element(kAXFocusedUIElementAttribute, of: application) else { return nil }
+        AXUIElementSetMessagingTimeout(input, 0.15)
+        guard let window = element(kAXWindowAttribute, of: input) else { return nil }
+        var owner: pid_t = 0
+        guard AXUIElementGetPid(window, &owner) == .success, owner == pid else { return nil }
+        return window
     }
 
     fileprivate var focus: PasteFocus {
@@ -42,11 +59,12 @@ struct PasteTarget {
             return .waitingForActivation
         }
         guard frontmostPID == application.processIdentifier else { return .unavailable }
-        guard let focusedWindow = Self.focusedWindow(in: axApplication) else {
+        guard application.isActive,
+              let focusedWindow = Self.focusedWindow(in: axApplication, pid: application.processIdentifier) else {
             return .waitingForActivation
         }
         guard CFEqual(focusedWindow, window) else { return .differentWindow }
-        return application.isActive ? .focused : .unavailable
+        return .focused
     }
 
     fileprivate func restoreWindow() {
@@ -65,7 +83,7 @@ enum PasteFocus {
 
 @MainActor
 enum PasteController {
-    static func paste(to target: PasteTarget?) async -> PasteResult {
+    static func paste(to target: PasteTarget?, beginHandoff: () -> Void) async -> PasteResult {
         guard let target, !target.application.isTerminated,
               target.application.processIdentifier != ProcessInfo.processInfo.processIdentifier else {
             return .targetUnavailable
@@ -79,19 +97,37 @@ enum PasteController {
         guard target.window != nil, !Task.isCancelled else { return .targetUnavailable }
 
         let pasteboardChange = NSPasteboard.general.changeCount
-        if !target.application.isActive,
-           !target.application.activate(options: [.activateIgnoringOtherApps]) {
+        let frontmost = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        if let frontmost, frontmost != target.application.processIdentifier,
+           frontmost != ProcessInfo.processInfo.processIdentifier {
             return .targetUnavailable
         }
+        if #available(macOS 14, *), frontmost != target.application.processIdentifier {
+            NSApp.yieldActivation(to: target.application)
+        }
+        // Yield while we are active, then remove our key panel before the editor receives input.
+        beginHandoff()
+        if frontmost != target.application.processIdentifier {
+            if #available(macOS 14, *) {
+                _ = target.application.activate(from: .current, options: [])
+            } else {
+                _ = target.application.activate(options: [.activateIgnoringOtherApps])
+            }
+        }
+        var failure = PasteResult.focusNotRestored
         let posted = await Self.postWhenFocused(
             readFocus: { target.focus },
             restoreWindow: { target.restoreWindow() },
             post: {
-                guard NSPasteboard.general.changeCount == pasteboardChange else { return false }
+                guard NSPasteboard.general.changeCount == pasteboardChange else {
+                    failure = .clipboardChanged
+                    return false
+                }
+                failure = .eventUnavailable
                 return postCommandV(to: target.application.processIdentifier)
             }
         )
-        return posted ? .posted : .targetUnavailable
+        return posted ? .posted : failure
     }
 
     static func postWhenFocused(

@@ -61,7 +61,7 @@ final class HistoryWindowController: NSWindowController,
     NSDraggingSource
 {
     var onChoose: ((ClipboardEntry) -> Void)?
-    var onPaste: (@MainActor (ClipboardEntry, PasteTarget?) async -> PasteResult)?
+    var onPaste: (@MainActor (ClipboardEntry, PasteTarget?, () -> Void) async -> PasteResult)?
     var onDelete: (([ClipboardEntry]) -> Int)?
     var onUndoDelete: (() -> Int)?
     var onTogglePin: ((ClipboardEntry) -> Void)?
@@ -109,6 +109,8 @@ final class HistoryWindowController: NSWindowController,
     private var lastExternalApplication: NSRunningApplication?
     private let pasteTargetTracker = PasteTargetTracker()
     private var pasteTask: Task<Void, Never>?
+    private var pendingPasteKey: UInt16?
+    private var lastPasteNotice: String?
     private var suppressSelectionCallback = false
     private var keyboardMonitor: Any?
     private var mouseMonitor: Any?
@@ -253,6 +255,7 @@ final class HistoryWindowController: NSWindowController,
             }
         }
 
+        cancelPendingPaste()
         let frontmostApplication = NSWorkspace.shared.frontmostApplication
         if isExternalApplication(frontmostApplication) {
             lastExternalApplication = frontmostApplication
@@ -276,6 +279,11 @@ final class HistoryWindowController: NSWindowController,
         window.setFrame(finalFrame, display: false)
         updateContentInsets()
         refilter(fallbackIndex: 0)
+        if let lastPasteNotice {
+            statusLabel.stringValue = lastPasteNotice
+            statusLabel.textColor = .systemOrange
+            self.lastPasteNotice = nil
+        }
 
         installKeyboardMonitor()
         NSApp.activate(ignoringOtherApps: true)
@@ -1173,6 +1181,7 @@ final class HistoryWindowController: NSWindowController,
 
     private func chooseEntry(at index: Int) {
         guard visibleEntries.indices.contains(index) else { return }
+        pendingPasteKey = nil
         cancelPendingPaste()
         let entry = visibleEntries[index]
         onChoose?(entry)
@@ -1201,12 +1210,9 @@ final class HistoryWindowController: NSWindowController,
         pasteTask = Task { @MainActor [weak self] in
             guard let self, !Task.isCancelled else { return }
             self.onChoose?(entry)
-            let result = await self.onPaste?(entry, target) ?? .targetUnavailable
+            let result = await self.onPaste?(entry, target, self.hideForPaste) ?? .targetUnavailable
             guard !Task.isCancelled else { return }
             self.pasteTask = nil
-            if result != .posted {
-                self.pasteTargetTracker.resumeObserving()
-            }
             switch result {
             case .posted:
                 self.dismiss(restorePreviousApplication: false)
@@ -1215,12 +1221,34 @@ final class HistoryWindowController: NSWindowController,
                 self.statusLabel.textColor = .systemOrange
                 NSSound.beep()
                 self.showAccessibilityPermissionHelp()
-            case .targetUnavailable:
-                self.statusLabel.stringValue = L10n.tr("自动粘贴未完成，请单击卡片复制，再到目标窗口按 ⌘V")
-                self.statusLabel.textColor = .systemOrange
+            case .targetUnavailable, .focusNotRestored, .clipboardChanged, .eventUnavailable:
+                let message = L10n.tr(result.rawValue)
+                if self.window?.isKeyWindow == true && NSApp.isActive {
+                    self.statusLabel.stringValue = message
+                    self.statusLabel.textColor = .systemOrange
+                } else {
+                    self.hideForPaste()
+                    self.lastPasteNotice = message
+                }
                 NSSound.beep()
             }
+            if self.window?.isVisible == true, result != .posted {
+                self.pasteTargetTracker.resumeObserving()
+            } else {
+                self.pasteTargetTracker.stop()
+            }
         }
+    }
+
+    private func hideForPaste() {
+        removeKeyboardMonitor()
+        endPreviewSession(restoreBrowsingFocus: false)
+        thumbnailProvider.cancelAll()
+        window?.orderOut(nil)
+    }
+
+    func windowDidResignKey(_ notification: Notification) {
+        pendingPasteKey = nil
     }
 
     private func cancelPendingPaste() {
@@ -1402,7 +1430,7 @@ final class HistoryWindowController: NSWindowController,
                 }
             },
             installPasteStub: { [weak self] observer in
-                self?.onPaste = { _, _ in
+                self?.onPaste = { _, _, _ in
                     observer()
                     return .posted
                 }
@@ -1414,6 +1442,14 @@ final class HistoryWindowController: NSWindowController,
             host: host,
             completion: completion
         ).run()
+    }
+
+    func triggerPackageSmokePaste(doubleClick: Bool) {
+        if doubleClick {
+            postPackageSmokeCardClick(at: 0, modifiers: [], clickCount: 2) { _ in }
+        } else {
+            postPackageSmokeKey(keyCode: UInt16(kVK_Return), modifiers: [], characters: "\r") {}
+        }
     }
 
     private func postPackageSmokeCardClick(
@@ -1480,9 +1516,13 @@ final class HistoryWindowController: NSWindowController,
         characters: String,
         completion: @escaping () -> Void
     ) {
-        guard let window,
-              let event = NSEvent.keyEvent(
-                with: .keyDown,
+        guard let window else {
+            completion()
+            return
+        }
+        for type in [NSEvent.EventType.keyDown, .keyUp] {
+            guard let event = NSEvent.keyEvent(
+                with: type,
                 location: .zero,
                 modifierFlags: modifiers,
                 timestamp: ProcessInfo.processInfo.systemUptime,
@@ -1492,11 +1532,12 @@ final class HistoryWindowController: NSWindowController,
                 charactersIgnoringModifiers: characters,
                 isARepeat: false,
                 keyCode: keyCode
-              ) else {
-            completion()
-            return
+            ) else {
+                completion()
+                return
+            }
+            NSApp.postEvent(event, atStart: false)
         }
-        NSApp.postEvent(event, atStart: false)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: completion)
     }
 
@@ -1633,14 +1674,20 @@ final class HistoryWindowController: NSWindowController,
 
     private func installKeyboardMonitor() {
         removeKeyboardMonitor()
-        keyboardMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) {
+        keyboardMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) {
             [weak self] event in
-            guard let self,
-                  self.window?.isVisible == true,
-                  self.handleKeyboardEvent(event) else {
-                return event
+            guard let self, self.window?.isVisible == true else { return event }
+            if event.type == .keyUp {
+                guard self.pendingPasteKey == event.keyCode else { return event }
+                self.pendingPasteKey = nil
+                if self.window?.isKeyWindow == true, self.window?.attachedSheet == nil {
+                    self.confirmAndPaste()
+                }
+                return nil
             }
-            return nil
+            if event.isARepeat, self.pendingPasteKey == event.keyCode { return nil }
+            self.pendingPasteKey = nil
+            return self.handleKeyboardEvent(event) ? nil : event
         }
         mouseMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) {
             [weak self] event in
@@ -1664,6 +1711,7 @@ final class HistoryWindowController: NSWindowController,
     }
 
     private func removeKeyboardMonitor() {
+        pendingPasteKey = nil
         if let keyboardMonitor {
             NSEvent.removeMonitor(keyboardMonitor)
             self.keyboardMonitor = nil
@@ -1772,7 +1820,9 @@ final class HistoryWindowController: NSWindowController,
                 focusSearchField()
             }
         case .pasteSelection:
-            confirmAndPaste()
+            if !event.isARepeat, event.window === window, window?.isKeyWindow == true {
+                pendingPasteKey = event.keyCode
+            }
         case .toggleQuickLook:
             if !event.isARepeat {
                 togglePreview()

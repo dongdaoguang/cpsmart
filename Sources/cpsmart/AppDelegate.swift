@@ -190,6 +190,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func startPackageSmokeTest() {
+        if CommandLine.arguments.contains("--test-paste-window") {
+            startPasteWindowValidation()
+            return
+        }
         guard let packageSmokeRoot,
         let reportArgumentIndex = CommandLine.arguments.firstIndex(
             of: "--package-smoke-report"
@@ -291,6 +295,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    private func startPasteWindowValidation() {
+        guard let packageSmokeRoot, let trigger = CommandLine.arguments.last,
+              ["return", "double-click"].contains(trigger),
+              let pidString = ProcessInfo.processInfo.environment["CPSMART_TEST_RECEIVER_PID"],
+              let pid = pid_t(pidString), let receiver = NSRunningApplication(processIdentifier: pid),
+              receiver.bundleIdentifier == "com.cpsmart.tests.PasteReceiver",
+              receiver.bundleURL?.resolvingSymlinksInPath() == packageSmokeRoot
+                .deletingLastPathComponent().deletingLastPathComponent()
+                .appendingPathComponent("PasteReceiver.app", isDirectory: true).resolvingSymlinksInPath(),
+              NSWorkspace.shared.frontmostApplication == receiver else {
+            NSLog("Paste window test requires the focused receiver from its isolated test directory")
+            NSApp.terminate(nil)
+            return
+        }
+        let diagnostic = packageSmokeRoot.appendingPathComponent("paste-result")
+        guard AXIsProcessTrusted(), CGPreflightPostEventAccess() else {
+            try? "missing Accessibility or event-posting permission".write(to: diagnostic, atomically: true, encoding: .utf8)
+            NSApp.terminate(nil)
+            return
+        }
+        let paste = historyWindow.onPaste
+        historyWindow.onPaste = { entry, target, handoff in
+            guard let target, !receiver.isTerminated, target.application == receiver,
+                  target.application.processIdentifier == receiver.processIdentifier,
+                  target.application.bundleIdentifier == "com.cpsmart.tests.PasteReceiver"
+            else { return .targetUnavailable }
+            let result = await paste?(entry, target, handoff) ?? .targetUnavailable
+            try? String(describing: result).write(to: diagnostic, atomically: true, encoding: .utf8)
+            return result
+        }
+        historyWindow.show(entries: [ClipboardEntry(payload: .text("Paste window test"))])
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.historyWindow.triggerPackageSmokePaste(doubleClick: trigger == "double-click")
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { NSApp.terminate(nil) }
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         monitor.stop()
         if let demoPinboardFileURL {
@@ -327,9 +368,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard !self.isPackageSmokeTest else { return }
             self.monitor.write(entry.payload)
         }
-        historyWindow.onPaste = { [weak self] entry, target in
+        historyWindow.onPaste = { [weak self] entry, target, beginHandoff in
             guard let self else { return .targetUnavailable }
-            let result = await PasteController.paste(to: target)
+            let result = await PasteController.paste(to: target, beginHandoff: beginHandoff)
             if result == .posted {
                 self.store.promote(id: entry.id)
             }
