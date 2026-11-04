@@ -22,7 +22,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return PinboardStore(fileURL: packageSmokeRoot.appendingPathComponent("pinboards.json"))
     }()
     private let monitor = ClipboardMonitor()
-    private let pasteController = PasteController()
     private let shortcutStore = ShortcutStore()
     private let updateController = UpdateController()
     private lazy var historyWindow = HistoryWindowController(shortcutStore: shortcutStore)
@@ -328,12 +327,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard !self.isPackageSmokeTest else { return }
             self.monitor.write(entry.payload)
         }
-        historyWindow.onPaste = { [weak self] entry, targetApplication in
+        historyWindow.onPaste = { [weak self] entry, target in
             guard let self else { return .targetUnavailable }
-            let entryID = entry.id
-            return self.pasteController.paste(to: targetApplication) { [weak self] in
-                self?.store.promote(id: entryID)
+            let result = await PasteController.paste(to: target)
+            if result == .posted {
+                self.store.promote(id: entry.id)
             }
+            return result
         }
         historyWindow.onDelete = { [weak self] entries in
             guard let self else { return 0 }

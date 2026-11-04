@@ -202,7 +202,7 @@
 "已选择 {0} 项 · 预览与粘贴使用当前卡片" = "{0} items selected · Preview and paste use the current card";
 "已选择并复制 {0} / {1} · 双击可粘贴" = "Selected and copied {0} of {1} · Double-click to paste";
 "请在“系统设置 → 隐私与安全性 → 辅助功能”中允许 cpsmart" = "Allow cpsmart in System Settings → Privacy & Security → Accessibility";
-"无法找到刚才使用的应用，请关闭浮窗后重试" = "Could not find the previously used app. Close the window and try again.";
+"自动粘贴未完成，请单击卡片复制，再到目标窗口按 ⌘V" = "Automatic paste could not finish. Click the card to copy it, then press ⌘V in the target window.";
 "自动粘贴需要“辅助功能”权限" = "Automatic pasting requires Accessibility permission";
 "清除旧记录、打开设置并退出" = "Clear old entries, open Settings, and quit";
 "仅打开设置" = "Open Settings Only";

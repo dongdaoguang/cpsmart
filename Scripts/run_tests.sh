@@ -40,6 +40,7 @@ CLANG_MODULE_CACHE_PATH="$MODULE_CACHE" swiftc \
     "$PROJECT_DIR/Sources/cpsmart/DisplayGeometry.swift" \
     "$PROJECT_DIR/Sources/cpsmart/HistorySelectionState.swift" \
     "$PROJECT_DIR/Sources/cpsmart/AccessibilityPermissionSupport.swift" \
+    "$PROJECT_DIR/Sources/cpsmart/PasteController.swift" \
     "$PROJECT_DIR/Sources/cpsmart/UpdateSupport.swift" \
     "$PROJECT_DIR/Sources/cpsmart/KeyboardShortcuts.swift" \
     "$PROJECT_DIR/Tests/cpsmartTests/CoreTestSupport.swift" \

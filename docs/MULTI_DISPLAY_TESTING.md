@@ -44,6 +44,13 @@ Cover at least two layouts that the available hardware can form. At least one mu
 20. Within a pinboard, drag its first, a middle, and the last card to other positions. Confirm the insertion points and that the order persists after quitting and reopening the app.
 21. Turn on search or a type filter in a pinboard and confirm drag reordering is disabled. Clear the filter and confirm reordering works again.
 
+## Two windows of the same terminal app
+
+- Run Claude Code in two windows of the same terminal app, one on each display. Type a character to confirm focus, then open history and paste a distinctive test string. Use each window as the target and try both Return and a double-click. Check that only the intended input receives the string each time.
+- Leave keyboard focus in one window, move the pointer to the other display without clicking, and open history with the shortcut. The panel should follow the pointer and the paste should go to the window with keyboard focus.
+- With history open, click the other terminal window, then double-click a history card. The last terminal window you clicked should receive the paste.
+- With history open, let the original window close (for example, using a timer in the test window), then press Return. Confirm the panel reports that automatic paste could not finish and the other session receives no text.
+
 ## Mouse and trackpad
 
 - Test both tap-to-click and physical trackpad clicks, where the system's Tap to click setting permits. For each, verify a normal click, `Shift` range selection, and `⌘` add/remove selection.

@@ -61,7 +61,7 @@ final class HistoryWindowController: NSWindowController,
     NSDraggingSource
 {
     var onChoose: ((ClipboardEntry) -> Void)?
-    var onPaste: ((ClipboardEntry, NSRunningApplication?) -> PasteStartResult)?
+    var onPaste: (@MainActor (ClipboardEntry, PasteTarget?) async -> PasteResult)?
     var onDelete: (([ClipboardEntry]) -> Int)?
     var onUndoDelete: (() -> Int)?
     var onTogglePin: ((ClipboardEntry) -> Void)?
@@ -106,15 +106,9 @@ final class HistoryWindowController: NSWindowController,
     private var selectedIndex: Int { selectionState.activeIndex(in: visibleEntryIDs) ?? 0 }
     private var selectedEntryIDs: Set<UUID> { selectionState.selectedIDs }
     private var hasPendingDeletionUndo = false
-    private var previousApplication: NSRunningApplication?
     private var lastExternalApplication: NSRunningApplication?
-
-    /// 粘贴与焦点归还的目标：用户最近一次操作的外部应用。
-    /// 浮窗常驻期间用户可能点击了别的窗口，目标应跟随真实焦点，
-    /// 而不是锁定在浮窗打开的那一刻。
-    private var pasteTargetApplication: NSRunningApplication? {
-        lastExternalApplication ?? previousApplication
-    }
+    private let pasteTargetTracker = PasteTargetTracker()
+    private var pasteTask: Task<Void, Never>?
     private var suppressSelectionCallback = false
     private var keyboardMonitor: Any?
     private var mouseMonitor: Any?
@@ -157,7 +151,10 @@ final class HistoryWindowController: NSWindowController,
         ) { [weak self] notification in
             let application = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
                 as? NSRunningApplication
-            self?.rememberExternalApplication(application)
+            guard let self, let application,
+                  application.processIdentifier == NSWorkspace.shared.frontmostApplication?.processIdentifier
+            else { return }
+            self.rememberExternalApplication(application)
         }
         // 系统深浅色切换时，「跟随系统」模式要跟着变
         systemThemeObserver = DistributedNotificationCenter.default().addObserver(
@@ -258,11 +255,9 @@ final class HistoryWindowController: NSWindowController,
 
         let frontmostApplication = NSWorkspace.shared.frontmostApplication
         if isExternalApplication(frontmostApplication) {
-            previousApplication = frontmostApplication
-            rememberExternalApplication(frontmostApplication)
-        } else {
-            previousApplication = lastExternalApplication
+            lastExternalApplication = frontmostApplication
         }
+        pasteTargetTracker.track(lastExternalApplication)
 
         historyEntries = entries
         self.pinboards = pinboards
@@ -1178,6 +1173,7 @@ final class HistoryWindowController: NSWindowController,
 
     private func chooseEntry(at index: Int) {
         guard visibleEntries.indices.contains(index) else { return }
+        cancelPendingPaste()
         let entry = visibleEntries[index]
         onChoose?(entry)
         updateSelectionStatus()
@@ -1196,23 +1192,42 @@ final class HistoryWindowController: NSWindowController,
     }
 
     private func confirmAndPaste() {
-        guard visibleEntries.indices.contains(selectedIndex) else { return }
+        guard !isDismissing, pasteTask == nil,
+              visibleEntries.indices.contains(selectedIndex) else { return }
         let entry = visibleEntries[selectedIndex]
-        onChoose?(entry)
-        let result = onPaste?(entry, pasteTargetApplication) ?? .targetUnavailable
-        switch result {
-        case .started:
-            dismiss(restorePreviousApplication: false)
-        case .permissionRequired:
-            statusLabel.stringValue = L10n.tr("请在“系统设置 → 隐私与安全性 → 辅助功能”中允许 cpsmart")
-            statusLabel.textColor = .systemOrange
-            NSSound.beep()
-            showAccessibilityPermissionHelp()
-        case .targetUnavailable:
-            statusLabel.stringValue = L10n.tr("无法找到刚才使用的应用，请关闭浮窗后重试")
-            statusLabel.textColor = .systemOrange
-            NSSound.beep()
+        // 激活终端时系统可能短暂聚焦它的另一扇窗口，不能让这次变化覆盖用户的目标。
+        pasteTargetTracker.stopObserving()
+        let target = pasteTargetTracker.target
+        pasteTask = Task { @MainActor [weak self] in
+            guard let self, !Task.isCancelled else { return }
+            self.onChoose?(entry)
+            let result = await self.onPaste?(entry, target) ?? .targetUnavailable
+            guard !Task.isCancelled else { return }
+            self.pasteTask = nil
+            if result != .posted {
+                self.pasteTargetTracker.resumeObserving()
+            }
+            switch result {
+            case .posted:
+                self.dismiss(restorePreviousApplication: false)
+            case .permissionRequired:
+                self.statusLabel.stringValue = L10n.tr("请在“系统设置 → 隐私与安全性 → 辅助功能”中允许 cpsmart")
+                self.statusLabel.textColor = .systemOrange
+                NSSound.beep()
+                self.showAccessibilityPermissionHelp()
+            case .targetUnavailable:
+                self.statusLabel.stringValue = L10n.tr("自动粘贴未完成，请单击卡片复制，再到目标窗口按 ⌘V")
+                self.statusLabel.textColor = .systemOrange
+                NSSound.beep()
+            }
         }
+    }
+
+    private func cancelPendingPaste() {
+        guard let pasteTask else { return }
+        pasteTask.cancel()
+        self.pasteTask = nil
+        pasteTargetTracker.resumeObserving()
     }
 
     private func showAccessibilityPermissionHelp() {
@@ -1389,7 +1404,7 @@ final class HistoryWindowController: NSWindowController,
             installPasteStub: { [weak self] observer in
                 self?.onPaste = { _, _ in
                     observer()
-                    return .started
+                    return .posted
                 }
             }
         )
@@ -1588,6 +1603,8 @@ final class HistoryWindowController: NSWindowController,
 
     private func dismiss(restorePreviousApplication: Bool) {
         guard let window, window.isVisible, !isDismissing else { return }
+        cancelPendingPaste()
+        pasteTargetTracker.stop()
         isDismissing = true
         dismissalGeneration += 1
         let generation = dismissalGeneration
@@ -1605,11 +1622,10 @@ final class HistoryWindowController: NSWindowController,
             window?.alphaValue = 1
             self.isDismissing = false
             if restorePreviousApplication,
-               let targetApplication = self.pasteTargetApplication,
+               let targetApplication = self.lastExternalApplication,
                targetApplication.processIdentifier != ProcessInfo.processInfo.processIdentifier {
                 targetApplication.activate(options: [.activateIgnoringOtherApps])
             }
-            self.previousApplication = nil
         })
     }
 
@@ -1824,8 +1840,17 @@ final class HistoryWindowController: NSWindowController,
     // MARK: 前台应用追踪
 
     private func rememberExternalApplication(_ application: NSRunningApplication?) {
-        guard isExternalApplication(application) else { return }
+        guard let application, isExternalApplication(application) else { return }
         lastExternalApplication = application
+        if window?.isVisible == true, !isDismissing {
+            // 粘贴自身触发的激活不改变目标。用户切到其他应用时才取消旧请求。
+            if pasteTask != nil,
+               pasteTargetTracker.target?.application.processIdentifier == application.processIdentifier {
+                return
+            }
+            cancelPendingPaste()
+            pasteTargetTracker.track(application)
+        }
     }
 
     private func isExternalApplication(_ application: NSRunningApplication?) -> Bool {

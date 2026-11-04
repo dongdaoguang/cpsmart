@@ -26,6 +26,9 @@ final class CoreTests: XCTestCase {
 
     func testRangeSelection() throws { try CoreTestSupport.runRangeSelection() }
     func testDisplayGeometry() throws { try CoreTestSupport.runDisplayGeometry() }
+    func testPasteFocusValidation() async throws {
+        try await CoreTestSupport.runPasteFocusValidation()
+    }
     func testAdaptivePreviewSizing() throws { try CoreTestSupport.runAdaptivePreviewSizing() }
     func testPreviewSessionAndQuickLookStore() throws {
         try withTemporaryDirectory {

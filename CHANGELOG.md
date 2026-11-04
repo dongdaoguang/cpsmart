@@ -6,6 +6,10 @@ This project follows semantic versioning.
 
 ## Unreleased
 
+## 1.12.1 — 2026-11-04
+
+- When you press Return or double-click a history card, cpsmart checks which window had keyboard focus. If another window of the same app is active, cpsmart tries to restore the original window. If it cannot confirm focus, it stops and offers manual paste. [#6](https://github.com/dongdaoguang/cpsmart/issues/6)
+
 ## 1.12.0 — 2026-09-28
 
 ### Added

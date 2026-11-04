@@ -92,6 +92,78 @@ enum CoreTestSupport {
     static func runShortcutMatcherContexts() throws { try testShortcutMatcherContexts() }
     static func runInvalidShortcutPersistenceFallsBackToDefaults() throws { try testInvalidShortcutPersistenceFallsBackToDefaults() }
 
+    @MainActor
+    static func runPasteFocusValidation() async throws {
+        // Record the last observed focus at each action. The final sample persists
+        // so a permanently wrong window exercises the real retry limit.
+        @MainActor
+        func simulate(
+            _ samples: [PasteFocus],
+            postSucceeds: Bool = true,
+            cancelAfterFirstRead: Bool = false
+        ) async -> (result: Bool, restoredAt: [PasteFocus?], postedAt: [PasteFocus?]) {
+            var readCount = 0
+            var latest: PasteFocus?
+            var restores: [PasteFocus?] = []
+            var posts: [PasteFocus?] = []
+            let result = await PasteController.postWhenFocused(
+                readFocus: {
+                    let focus = samples[min(readCount, samples.count - 1)]
+                    latest = focus
+                    readCount += 1
+                    if cancelAfterFirstRead && readCount == 1 {
+                        withUnsafeCurrentTask { $0?.cancel() }
+                    }
+                    return focus
+                },
+                restoreWindow: { restores.append(latest) },
+                post: {
+                    posts.append(latest)
+                    return postSucceeds
+                }
+            )
+            return (result, restores, posts)
+        }
+
+        let recovered = await simulate([
+            .waitingForActivation, .differentWindow, .differentWindow, .focused
+        ])
+        try require(
+            recovered.result && recovered.restoredAt == [.differentWindow]
+                && recovered.postedAt == [.focused],
+            "paste must wait for activation, restore the original window once, and recheck focus before posting"
+        )
+
+        let inactive = await simulate([.waitingForActivation])
+        try require(
+            !inactive.result && inactive.restoredAt.isEmpty && inactive.postedAt.isEmpty,
+            "paste was sent or a window raised while a different application was active"
+        )
+        let mismatch = await simulate([.differentWindow])
+        try require(
+            !mismatch.result && mismatch.restoredAt == [.differentWindow] && mismatch.postedAt.isEmpty,
+            "timed-out paste repeated the focus request or posted to an unverified window"
+        )
+        let missing = await simulate([.unavailable, .focused])
+        try require(
+            !missing.result && missing.restoredAt.isEmpty && missing.postedAt.isEmpty,
+            "paste retried after the original target became unavailable"
+        )
+        let failedPost = await simulate([.focused], postSucceeds: false)
+        try require(
+            !failedPost.result && failedPost.restoredAt.isEmpty && failedPost.postedAt == [.focused],
+            "a failed event post was retried or reported as a successful paste"
+        )
+
+        let cancelled = await Task { @MainActor in
+            await simulate([.waitingForActivation, .focused], cancelAfterFirstRead: true)
+        }.value
+        try require(
+            !cancelled.result && cancelled.restoredAt.isEmpty && cancelled.postedAt.isEmpty,
+            "cancelled paste posted when focus later matched"
+        )
+    }
+
     private static func testRangeSelection() throws {
         let ids = (0..<6).map { _ in UUID() }
         var state = HistorySelectionState<UUID>()
