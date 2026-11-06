@@ -230,6 +230,9 @@
 "登录时启动" = "Launch at Login";
 "快捷键设置…" = "Keyboard Shortcuts…";
 "外观" = "Appearance";
+"浮窗背景透明度" = "History Background Transparency";
+"更不透明" = "More opaque";
+"更透明" = "More transparent";
 "清空历史…" = "Clear History…";
 "清空全部历史（含置顶）…" = "Clear All History (Including Pinned Items)…";
 "自动检查更新" = "Automatically Check for Updates";

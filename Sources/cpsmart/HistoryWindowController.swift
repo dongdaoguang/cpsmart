@@ -89,8 +89,8 @@ final class HistoryWindowController: NSWindowController,
     private let statusLabel = NSTextField(labelWithString: "")
     private let hintLabel = NSTextField(labelWithString: "")
     private let emptyLabel = NSTextField(labelWithString: "")
-    private var effectView: NSVisualEffectView!
-    private var tintView: NSView!
+    private let backdrop = HistoryPanelBackdrop()
+    private var openedForOpacityPreview = false
 
     private var palette = AppVisualTheme.palette(isDark: true)
     private var historyEntries: [ClipboardEntry] = []
@@ -204,9 +204,7 @@ final class HistoryWindowController: NSWindowController,
 
         let appearance = NSAppearance(named: isDark ? .darkAqua : .aqua)
         window?.appearance = appearance
-        effectView?.appearance = appearance
-        tintView?.layer?.backgroundColor = palette.panelTint.cgColor
-        effectView?.layer?.borderColor = palette.panelBorder.cgColor
+        updateBackgroundOpacity()
 
         countLabel.textColor = palette.textTertiary
         statusLabel.textColor = palette.textSecondary
@@ -216,6 +214,27 @@ final class HistoryWindowController: NSWindowController,
         // 卡片颜色由各 item 在 configure 时按 palette 重写
         rebuildPinboardTabs()
         reloadCollection(notify: false)
+    }
+
+    func updateBackgroundOpacity() {
+        backdrop.update(palette: palette, transparency: HistoryPanelOpacity.value)
+    }
+
+    func beginOpacityPreview(entries: [ClipboardEntry], pinboards: [Pinboard]) {
+        guard let window, !window.isVisible || isDismissing, pasteTask == nil else { return }
+        prepareHistoryWindow(window, entries: entries, pinboards: pinboards)
+        // Display the real cards without taking key focus away from the tracking menu.
+        openedForOpacityPreview = true
+        window.ignoresMouseEvents = true
+        window.orderFrontRegardless()
+    }
+
+    func endOpacityPreview() {
+        guard openedForOpacityPreview else { return }
+        openedForOpacityPreview = false
+        window?.orderOut(nil)
+        window?.ignoresMouseEvents = false
+        thumbnailProvider.cancelAll()
     }
 
     func refreshLocalization() {
@@ -241,18 +260,11 @@ final class HistoryWindowController: NSWindowController,
         entries: [ClipboardEntry],
         pinboards: [Pinboard] = []
     ) {
-        if window?.isVisible == true {
-            if isDismissing {
-                // 退场动画进行中：作废旧动画的完成回调并立即复位，
-                // 避免全局快捷键在 0.12s 动画窗口内被吞掉。
-                dismissalGeneration += 1
-                window?.orderOut(nil)
-                window?.alphaValue = 1
-                isDismissing = false
-            } else {
-                dismiss(restorePreviousApplication: true)
-                return
-            }
+        endOpacityPreview()
+        guard let window else { return }
+        if window.isVisible, !isDismissing {
+            dismiss(restorePreviousApplication: true)
+            return
         }
 
         cancelPendingPaste()
@@ -262,23 +274,8 @@ final class HistoryWindowController: NSWindowController,
         }
         pasteTargetTracker.track(lastExternalApplication)
 
-        historyEntries = entries
-        self.pinboards = pinboards
-        pinboardSourceState.selectHistory()
-        allEntries = entries
-        filterState.reset()
-        searchField.stringValue = ""
-        searchField.placeholderString = L10n.tr("搜索剪贴板历史")
-        filterControl.selectedSegment = 0
-        selectionState.reset()
-        rebuildPinboardTabs()
-
-        guard let window else { return }
-        let finalFrame = targetFrame()
-        // 先摆到最终位置完成布局与数据加载，再偏移一点做入场动画。
-        window.setFrame(finalFrame, display: false)
-        updateContentInsets()
-        refilter(fallbackIndex: 0)
+        prepareHistoryWindow(window, entries: entries, pinboards: pinboards)
+        let finalFrame = window.frame
         if let lastPasteNotice {
             statusLabel.stringValue = lastPasteNotice
             statusLabel.textColor = .systemOrange
@@ -303,6 +300,30 @@ final class HistoryWindowController: NSWindowController,
             window.makeFirstResponder(self.collectionView)
             self.updateHintLabel()
         }
+    }
+
+    private func prepareHistoryWindow(_ window: NSWindow, entries: [ClipboardEntry], pinboards: [Pinboard]) {
+        if isDismissing {
+            // Invalidate a pending dismissal before either opening the panel or previewing it.
+            dismissalGeneration += 1
+            window.orderOut(nil)
+            window.alphaValue = 1
+            isDismissing = false
+        }
+        historyEntries = entries
+        self.pinboards = pinboards
+        pinboardSourceState.selectHistory()
+        allEntries = entries
+        filterState.reset()
+        searchField.stringValue = ""
+        searchField.placeholderString = L10n.tr("搜索剪贴板历史")
+        filterControl.selectedSegment = 0
+        selectionState.reset()
+        rebuildPinboardTabs()
+
+        window.setFrame(targetFrame(), display: false)
+        updateContentInsets()
+        refilter(fallbackIndex: 0)
     }
 
     func refresh(entries: [ClipboardEntry], selectingEntryID: UUID? = nil) {
@@ -347,38 +368,14 @@ final class HistoryWindowController: NSWindowController,
     // MARK: 界面搭建
 
     private func buildInterface() {
-        guard let contentView = window?.contentView else { return }
-
-        effectView = NSVisualEffectView()
-        effectView.translatesAutoresizingMaskIntoConstraints = false
-        effectView.material = .hudWindow
-        effectView.blendingMode = .behindWindow
-        effectView.state = .active
-        effectView.wantsLayer = true
-        effectView.layer?.cornerRadius = HistoryWindowTheme.panelRadius
-        effectView.layer?.masksToBounds = true
-        effectView.layer?.borderWidth = 0.5
-        contentView.addSubview(effectView)
-
-        // 色调罩层：盖在毛玻璃上保证深浅两种模式在任何壁纸下基调一致，
-        // 具体颜色由 applyAppearanceMode() 按 palette 设置
-        tintView = NSView()
-        tintView.translatesAutoresizingMaskIntoConstraints = false
-        tintView.wantsLayer = true
-        effectView.addSubview(tintView)
-        NSLayoutConstraint.activate([
-            tintView.leadingAnchor.constraint(equalTo: effectView.leadingAnchor),
-            tintView.trailingAnchor.constraint(equalTo: effectView.trailingAnchor),
-            tintView.topAnchor.constraint(equalTo: effectView.topAnchor),
-            tintView.bottomAnchor.constraint(equalTo: effectView.bottomAnchor)
-        ])
+        window?.contentView = backdrop
 
         // 头部：贴边布局（不要把宽度约束写死成某个值——完全确定的约束链会让
         // AppKit 算出固定的 fittingSize 并在 layout 时把窗口"回正"到那个尺寸，
         // 全宽浮窗必须让约束欠定，由窗口框架驱动布局）
         let headerContainer = NSView()
         headerContainer.translatesAutoresizingMaskIntoConstraints = false
-        effectView.addSubview(headerContainer)
+        backdrop.addSubview(headerContainer)
 
         countLabel.font = .systemFont(ofSize: 10.5, weight: .medium)
         countLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -502,23 +499,18 @@ final class HistoryWindowController: NSWindowController,
         hintLabel.font = .systemFont(ofSize: 10, weight: .medium)
         hintLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        effectView.addSubview(scrollView)
-        effectView.addSubview(emptyLabel)
-        effectView.addSubview(hintLabel)
+        backdrop.addSubview(scrollView)
+        backdrop.addSubview(emptyLabel)
+        backdrop.addSubview(hintLabel)
 
         NSLayoutConstraint.activate([
-            effectView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            effectView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            effectView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            effectView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-
             headerContainer.leadingAnchor.constraint(
-                equalTo: effectView.leadingAnchor, constant: 24
+                equalTo: backdrop.leadingAnchor, constant: 24
             ),
             headerContainer.trailingAnchor.constraint(
-                equalTo: effectView.trailingAnchor, constant: -24
+                equalTo: backdrop.trailingAnchor, constant: -24
             ),
-            headerContainer.topAnchor.constraint(equalTo: effectView.topAnchor, constant: 14),
+            headerContainer.topAnchor.constraint(equalTo: backdrop.topAnchor, constant: 14),
             headerContainer.heightAnchor.constraint(equalToConstant: 28),
 
             countLabel.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor),
@@ -546,16 +538,16 @@ final class HistoryWindowController: NSWindowController,
             filterControl.trailingAnchor.constraint(equalTo: favoriteButton.leadingAnchor, constant: -8),
             filterControl.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
 
-            scrollView.leadingAnchor.constraint(equalTo: effectView.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: effectView.trailingAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: backdrop.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: backdrop.trailingAnchor),
             scrollView.topAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: 12),
 
             emptyLabel.centerXAnchor.constraint(equalTo: scrollView.centerXAnchor),
             emptyLabel.centerYAnchor.constraint(equalTo: scrollView.centerYAnchor),
 
-            hintLabel.centerXAnchor.constraint(equalTo: effectView.centerXAnchor),
+            hintLabel.centerXAnchor.constraint(equalTo: backdrop.centerXAnchor),
             hintLabel.topAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: 6),
-            hintLabel.bottomAnchor.constraint(equalTo: effectView.bottomAnchor, constant: -10)
+            hintLabel.bottomAnchor.constraint(equalTo: backdrop.bottomAnchor, constant: -10)
         ])
 
         updateHintLabel()
@@ -1892,7 +1884,7 @@ final class HistoryWindowController: NSWindowController,
     private func rememberExternalApplication(_ application: NSRunningApplication?) {
         guard let application, isExternalApplication(application) else { return }
         lastExternalApplication = application
-        if window?.isVisible == true, !isDismissing {
+        if window?.isVisible == true, !isDismissing, !openedForOpacityPreview {
             // 粘贴自身触发的激活不改变目标。用户切到其他应用时才取消旧请求。
             if pasteTask != nil,
                pasteTargetTracker.target?.application.processIdentifier == application.processIdentifier {

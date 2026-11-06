@@ -19,7 +19,7 @@ cpsmart is a lightweight, native macOS clipboard history app. Your clipboard dat
 - Pin items with `⌘P` by default. Ordinary clearing, history limits, and retention periods do not delete pinned items.
 - Create named, color-coded pinboards for text, commands, images, and files you want to keep.
 - Drag a history card onto a pinboard tab to save it, and drag cards within a pinboard to reorder them.
-- Use light mode, dark mode, or the system appearance.
+- Choose light, dark, or system appearance. The history window has an opaque background by default. Under **Appearance**, press the background transparency slider to see your clipboard history, then drag to adjust it. The setting is saved automatically.
 - Choose Follow System, English, or Simplified Chinese from the menu bar's Language submenu. The interface updates immediately and keeps your choice across launches.
 - Automatically skip clipboard contents marked by standard concealed, transient, or auto-generated flags.
 - Pause recording or launch cpsmart at login.

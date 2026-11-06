@@ -6,6 +6,11 @@ This project follows semantic versioning.
 
 ## Unreleased
 
+## 1.12.3 — 2026-11-06
+
+- Open **Appearance** in the menu bar and press the background transparency slider to preview your clipboard history. Drag to adjust the background while cards, text, and the selection outline stay visible. The setting is saved automatically.
+- The background starts fully opaque. At maximum transparency the blur disappears and only an 8% tint remains, so you can see the window behind your history.
+
 ## 1.12.2 — 2026-11-04
 
 - Fixed a 1.12.1 regression that could stop automatic paste in editors and terminals. When you press Return on a card, cpsmart waits for you to release the key, closes the history panel, and pastes into the original window. This prevents a held Return from inserting a newline during the switch.

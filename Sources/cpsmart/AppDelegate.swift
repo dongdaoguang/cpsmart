@@ -37,6 +37,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var pauseMenuItem: NSMenuItem!
     private var loginMenuItem: NSMenuItem!
     private var appearanceMenuItem: NSMenuItem!
+    private var opacityMenuView: HistoryOpacityMenuView!
+    private var isPreviewingOpacity = false
     private var languageMenuItem: NSMenuItem!
     private var checkForUpdatesMenuItem: NSMenuItem!
     private var automaticUpdatesMenuItem: NSMenuItem!
@@ -533,6 +535,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // 外观：跟随系统 / 浅色 / 深色
         appearanceMenuItem = NSMenuItem(title: L10n.tr("外观"), action: nil, keyEquivalent: "")
         let appearanceSubmenu = NSMenu()
+        appearanceSubmenu.autoenablesItems = false
         for (index, mode) in AppearanceMode.allCases.enumerated() {
             let item = NSMenuItem(
                 title: mode.displayName,
@@ -543,6 +546,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.tag = index
             appearanceSubmenu.addItem(item)
         }
+        appearanceSubmenu.addItem(.separator())
+        opacityMenuView = HistoryOpacityMenuView(
+            value: HistoryPanelOpacity.value,
+            beginPreview: { [weak self] in
+                guard let self, !self.isPreviewingOpacity else { return }
+                self.isPreviewingOpacity = true
+                #if DEBUG
+                if CommandLine.arguments.contains("--demo-data") {
+                    self.historyWindow.beginOpacityPreview(
+                        entries: DemoData.makeEntries(),
+                        pinboards: self.demoPinboardStore?.boards ?? DemoData.makePinboards()
+                    )
+                    return
+                }
+                #endif
+                self.historyWindow.beginOpacityPreview(
+                    entries: self.store.entries, pinboards: self.activePinboardStore.boards
+                )
+            }
+        ) { [weak self] value in
+            HistoryPanelOpacity.setValue(value)
+            self?.historyWindow.updateBackgroundOpacity()
+        }
+        let opacityItem = NSMenuItem(title: L10n.tr("浮窗背景透明度"), action: nil, keyEquivalent: "")
+        opacityItem.view = opacityMenuView
+        appearanceSubmenu.addItem(opacityItem)
         appearanceSubmenu.delegate = self
         appearanceMenuItem.submenu = appearanceSubmenu
         menu.addItem(appearanceMenuItem)
@@ -613,11 +642,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuWillOpen(_ menu: NSMenu) {
         if menu === appearanceMenuItem.submenu {
-            for item in menu.items {
+            for item in menu.items where item.action == #selector(selectAppearanceMode(_:)) {
                 item.state = AppearanceMode.allCases[item.tag] == AppearanceMode.current
                     ? .on
                     : .off
             }
+            opacityMenuView.value = HistoryPanelOpacity.value
             return
         }
         if menu === languageMenuItem.submenu {
@@ -635,6 +665,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func menuDidClose(_ menu: NSMenu) {
+        if isPreviewingOpacity, menu === appearanceMenuItem.submenu || menu === statusItem.menu {
+            isPreviewingOpacity = false
+            historyWindow.endOpacityPreview()
+        }
         guard menu === statusItem.menu, pendingLanguageRefresh else { return }
         pendingLanguageRefresh = false
         DispatchQueue.main.async { [weak self] in
